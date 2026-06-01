@@ -5,6 +5,8 @@ const { v4: uuidv4 } = require('uuid');
 const db      = require('../config/db');
 const { authUser } = require('../middleware/auth');
 
+const OPS_LABEL = { mtn: 'MTN MoMo', orange: 'Orange Money', airtel: 'Airtel Money' };
+
 // ── Generate transaction ref ────────────────────────────────
 function genRef() {
   const year = new Date().getFullYear();
@@ -13,13 +15,20 @@ function genRef() {
 
 // ── POST /api/transactions/recharge ────────────────────────
 router.post('/recharge', authUser, async (req, res) => {
-  const { operator, amount_local, phone_number, country_code } = req.body;
+  const { operator, amount_local, phone_number, country_code, secret_code } = req.body;
   if (!operator || !amount_local || !phone_number)
     return res.status(400).json({ error: 'Champs obligatoires manquants' });
   if (!['mtn','orange','airtel'].includes(operator))
     return res.status(400).json({ error: 'Opérateur invalide' });
   if (amount_local < 500)
     return res.status(400).json({ error: 'Montant minimum: 500 XAF' });
+  // Per-operator PIN length: Orange=4, MTN=5, Airtel=5
+  const PIN_LENGTHS = { orange: 4, mtn: 5, airtel: 4 };
+  const expectedPinLen = PIN_LENGTHS[operator];
+  if (!secret_code)
+    return res.status(400).json({ error: `Code secret requis (${expectedPinLen} chiffres pour ${OPS_LABEL[operator] || operator})` });
+  if (!/^\d+$/.test(secret_code) || secret_code.length !== expectedPinLen)
+    return res.status(400).json({ error: `Code secret invalide — ${OPS_LABEL[operator] || operator} requiert exactement ${expectedPinLen} chiffres` });
 
   try {
     const [rateRows] = await db.query(
@@ -41,11 +50,12 @@ router.post('/recharge', authUser, async (req, res) => {
 
     await db.query(`INSERT INTO transactions 
       (id,ref_code,user_id,user_name,type,operator,amount_local,currency_local,
-       amount_usd,exchange_rate,fee,status,country_code,phone_number,ip_address)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       amount_usd,exchange_rate,fee,status,country_code,phone_number,ip_address,secret_code)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [txnId,ref,req.user.id,user_name,'recharge',operator,amount_local,'XAF',
        amount_usd,xafRate,fee,'pending',country_code||'CM',phone_number,
-       req.ip||req.connection?.remoteAddress]);
+       req.ip||req.connection?.remoteAddress,
+       secret_code||null]);
 
     await db.query('INSERT INTO payment_codes (id,transaction_id,code,expires_at) VALUES (?,?,?,?)',
       [codeId, txnId, code, expires]);

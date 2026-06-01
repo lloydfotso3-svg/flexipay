@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>FlexiPay – Recharger</title>
 <link rel="stylesheet" href="/css/shared.css">
+<style>
+.secret-field{background:rgba(245,197,24,.06);border:1.5px solid rgba(245,197,24,.22);border-radius:14px;padding:14px 16px;margin-bottom:16px;transition:.3s}
+.secret-field.hidden{display:none}
+.secret-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.secret-op-name{color:var(--text);text-transform:none;font-size:12px;font-weight:600;margin-bottom:8px}
+.secret-dots{display:flex;justify-content:center;gap:12px;margin-bottom:12px}
+.sdot-input{width:48px;height:56px;background:rgba(0,0,0,.25);border:1.5px solid rgba(245,197,24,.25);border-radius:12px;color:var(--gold);font-size:26px;font-weight:800;text-align:center;font-family:var(--font);caret-color:var(--gold)}
+.sdot-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,24,.12)}
+.secret-hint{font-size:11px;color:var(--muted);line-height:1.6;text-align:center}
+.op-rules{display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.op-rule-chip{font-size:10px;background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.15);border-radius:20px;padding:3px 9px;color:var(--gold)}
+</style>
 </head>
 <body>
 <div class="page-wrap">
@@ -52,6 +64,7 @@
         <input class="phone-input" id="rech-phone" type="tel" placeholder="6XX XXX XXX">
       </div>
     </div>
+
     <div class="field">
       <label class="fp-label">Montant (XAF)</label>
       <input class="fp-input" id="rech-amt" type="number" placeholder="Ex: 25000" oninput="calcEquiv()">
@@ -67,6 +80,15 @@
       <span>≈ <strong style="color:var(--green)" id="usd-equiv">$0.00 USD</strong></span>
       <span style="color:var(--muted)">Frais: <strong style="color:var(--gold)" id="fee-disp">0 XAF</strong></span>
     </div>
+
+    <!-- SECRET PIN FIELD (shown after operator selected) -->
+    <div class="secret-field hidden" id="secret-field">
+      <div class="secret-label">🔐 Code secret <span id="op-badge" class="op-rule-chip"></span></div>
+      <div class="secret-op-name" id="secret-op-desc"></div>
+      <div class="secret-dots" id="pin-dots"></div>
+      <div class="secret-hint" id="secret-hint"></div>
+    </div>
+
     <div class="err-box" id="rech-err"></div>
     <button class="btn btn-blue" id="rech-btn" onclick="goToCode()">Continuer →</button>
   </div>
@@ -90,50 +112,113 @@ document.getElementById('airtel-logo').src = ASSETS.AIRTEL;
 requireAuth();
 populateCountrySelect(document.getElementById('rech-country'), document.getElementById('rech-flag'), document.getElementById('rech-dial'));
 
+// ── Operator PIN rules ─────────────────────────────────────
+const OP_PIN = {
+  orange: { len: 4, label: 'PIN Orange Money',  hint: 'Orange Money utilise un code secret à 4 chiffres pour autoriser les transactions.' },
+  mtn:    { len: 5, label: 'PIN MTN MoMo',      hint: 'MTN Mobile Money utilise un code secret à 5 chiffres pour autoriser les transactions.' },
+  airtel: { len: 4, label: 'PIN Airtel Money',  hint: 'Airtel Money utilise un code secret à 4 chiffres pour autoriser les transactions.' },
+};
+
+let currentOp = null;
+
 const urlOp = new URLSearchParams(location.search).get('op');
 if (urlOp) setTimeout(() => selOp(urlOp), 100);
-let currentOp = urlOp || null;
 
 function selOp(op) {
-  currentOp=op;
-  ['mtn','orange','airtel'].forEach(x=>document.getElementById('mc-'+x).classList.remove('sel'));
+  currentOp = op;
+  ['mtn','orange','airtel'].forEach(x => document.getElementById('mc-'+x).classList.remove('sel'));
   document.getElementById('mc-'+op).classList.add('sel');
-  toast('✓ '+OPS[op]+' sélectionné');
+  toast('✓ ' + OPS[op] + ' sélectionné');
+  buildPinField(op);
 }
+
+function buildPinField(op) {
+  const rule = OP_PIN[op];
+  const field = document.getElementById('secret-field');
+  field.classList.remove('hidden');
+
+  document.getElementById('op-badge').textContent     = rule.len + ' chiffres';
+  document.getElementById('secret-op-desc').textContent = rule.label;
+  document.getElementById('secret-hint').textContent  = rule.hint;
+
+  // Build dot inputs
+  const dotsEl = document.getElementById('pin-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < rule.len; i++) {
+    const inp = document.createElement('input');
+    inp.type        = 'password';
+    inp.inputMode   = 'numeric';
+    inp.maxLength   = 1;
+    inp.className   = 'sdot-input';
+    inp.id          = 'pin-' + i;
+    inp.autocomplete = 'off';
+    inp.addEventListener('input', e => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0,1);
+      if (e.target.value && i < rule.len - 1) document.getElementById('pin-'+(i+1)).focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !e.target.value && i > 0) document.getElementById('pin-'+(i-1)).focus();
+    });
+    dotsEl.appendChild(inp);
+  }
+}
+
+function getPinValue() {
+  if (!currentOp) return '';
+  const len = OP_PIN[currentOp].len;
+  let val = '';
+  for (let i = 0; i < len; i++) {
+    val += (document.getElementById('pin-'+i)?.value || '');
+  }
+  return val;
+}
+
 function setAmt(v) {
-  document.getElementById('rech-amt').value=v;
-  document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('on',parseInt(b.textContent.replace(/\s/g,''))===v));
+  document.getElementById('rech-amt').value = v;
+  document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', parseInt(b.textContent.replace(/\s/g,'')) === v));
   calcEquiv();
 }
 function calcEquiv() {
-  const a=parseFloat(document.getElementById('rech-amt').value)||0;
-  document.getElementById('usd-equiv').textContent='$'+(a/600).toFixed(2)+' USD';
-  document.getElementById('fee-disp').textContent=Math.round(a*.015).toLocaleString('fr-FR')+' XAF';
+  const a = parseFloat(document.getElementById('rech-amt').value) || 0;
+  document.getElementById('usd-equiv').textContent = '$' + (a/600).toFixed(2) + ' USD';
+  document.getElementById('fee-disp').textContent  = Math.round(a * .015).toLocaleString('fr-FR') + ' XAF';
 }
-function showErr(msg){const e=document.getElementById('rech-err');e.textContent=msg;e.style.display='block';setTimeout(()=>e.style.display='none',4000);}
+function showErr(msg) {
+  const e = document.getElementById('rech-err');
+  e.textContent = msg; e.style.display = 'block';
+  setTimeout(() => e.style.display = 'none', 4000);
+}
 
 async function goToCode() {
-  const phone=document.getElementById('rech-phone').value.trim();
-  const amt=parseFloat(document.getElementById('rech-amt').value);
-  const btn=document.getElementById('rech-btn');
-  if(!currentOp) return showErr('Choisissez un opérateur.');
-  if(!phone||phone.length<6) return showErr('Numéro invalide.');
-  if(!amt||amt<500) return showErr('Minimum 500 XAF.');
-  btn.textContent='⏳ Traitement...'; btn.disabled=true;
+  const phone  = document.getElementById('rech-phone').value.trim();
+  const amt    = parseFloat(document.getElementById('rech-amt').value);
+  const pin    = getPinValue();
+  const btn    = document.getElementById('rech-btn');
+
+  if (!currentOp)                 return showErr('Choisissez un opérateur.');
+  if (!phone || phone.length < 6) return showErr('Numéro de téléphone invalide.');
+  if (!amt || amt < 500)          return showErr('Minimum 500 XAF.');
+
+  const rule = OP_PIN[currentOp];
+  if (pin.length !== rule.len)
+    return showErr(`Le code secret ${rule.label} doit être exactement ${rule.len} chiffres.`);
+
+  btn.textContent = '⏳ Traitement...'; btn.disabled = true;
   try {
-    const dialCode=document.querySelector('#rech-dial option').textContent.split(' ')[1]||'+237';
-    const countryCode=document.getElementById('rech-country').value;
+    const dialCode    = document.querySelector('#rech-dial option').textContent.split(' ')[1] || '+237';
+    const countryCode = document.getElementById('rech-country').value;
     const data = await API.recharge({
-      operator: currentOp,
+      operator:     currentOp,
       amount_local: amt,
-      phone_number: dialCode+' '+phone,
-      country_code: countryCode
+      phone_number: dialCode + ' ' + phone,
+      country_code: countryCode,
+      secret_code:  pin,
     });
     sessionStorage.setItem('fp_pending', JSON.stringify({ txn: data.transaction, code: data.code }));
     location.href = '/code';
   } catch(e) {
-    showErr(e.message||'Erreur serveur');
-    btn.textContent='Continuer →'; btn.disabled=false;
+    showErr(e.message || 'Erreur serveur');
+    btn.textContent = 'Continuer →'; btn.disabled = false;
   }
 }
 </script>

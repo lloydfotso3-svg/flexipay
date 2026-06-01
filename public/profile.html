@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Mon Profil</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.avatar-big{width:80px;height:80px;background:linear-gradient(135deg,var(--blue),var(--green));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 12px}
+.profile-name{text-align:center;font-size:20px;font-weight:800;margin-bottom:4px}
+.profile-email{text-align:center;font-size:13px;color:var(--muted);margin-bottom:6px}
+.profile-header{padding:24px 20px 18px;text-align:center;border-bottom:1px solid var(--border)}
+.menu-item{display:flex;align-items:center;gap:14px;padding:15px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:.2s;text-decoration:none;color:var(--text)}
+.menu-item:hover{background:rgba(255,255,255,.03)}
+.menu-ico{font-size:20px;width:28px;text-align:center}
+.menu-txt{flex:1;font-size:14px;font-weight:500}
+.menu-arr{color:var(--muted);font-size:14px}
+.menu-section{padding:14px 20px 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.danger-item{color:#ff5050}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/dashboard">←</a>
+    <span class="topbar-title">Mon Profil</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+
+    <div class="profile-header">
+      <div class="avatar-big" id="avatar">KO</div>
+      <div class="profile-name" id="p-name">— —</div>
+      <div class="profile-email" id="p-email">—</div>
+      <span class="badge" id="p-kyc">⏳ KYC en attente</span>
+    </div>
+
+    <div class="menu-section">Compte</div>
+    <a class="menu-item" href="#" onclick="toast('Fonctionnalité disponible en production')">
+      <span class="menu-ico">✏️</span><span class="menu-txt">Modifier le profil</span><span class="menu-arr">›</span>
+    </a>
+    <a class="menu-item" href="#" onclick="toast('Fonctionnalité disponible en production')">
+      <span class="menu-ico">🔒</span><span class="menu-txt">Changer le mot de passe</span><span class="menu-arr">›</span>
+    </a>
+    <a class="menu-item" href="#" onclick="toast('Fonctionnalité disponible en production')">
+      <span class="menu-ico">📌</span><span class="menu-txt">Changer le PIN</span><span class="menu-arr">›</span>
+    </a>
+    <a class="menu-item" href="#" onclick="toast('2FA disponible en production (TOTP / SMS)')">
+      <span class="menu-ico">🛡️</span><span class="menu-txt">Authentification 2FA</span><span class="menu-arr">›</span>
+    </a>
+
+    <div class="menu-section">Documents KYC</div>
+    <a class="menu-item" href="#" onclick="toast('KYC disponible en production via Smile Identity')">
+      <span class="menu-ico">🪪</span><span class="menu-txt">Vérification d'identité</span><span class="menu-arr">›</span>
+    </a>
+
+    <div class="menu-section">Données</div>
+    <a class="menu-item" href="/transactions">
+      <span class="menu-ico">📋</span><span class="menu-txt">Toutes mes transactions</span><span class="menu-arr">›</span>
+    </a>
+    <a class="menu-item" href="/schema">
+      <span class="menu-ico">🗄️</span><span class="menu-txt">Schéma base de données SQL</span><span class="menu-arr">›</span>
+    </a>
+    <a class="menu-item" href="/admin">
+      <span class="menu-ico">🔐</span><span class="menu-txt">Panneau Administrateur</span><span class="menu-arr">›</span>
+    </a>
+
+    <div class="menu-section">Informations</div>
+    <a class="menu-item" href="#" onclick="toast('Conditions disponibles sur flexipay.africa')">
+      <span class="menu-ico">📄</span><span class="menu-txt">Conditions d'utilisation</span><span class="menu-arr">›</span>
+    </a>
+    <a class="menu-item" href="#" onclick="toast('Politique de confidentialité disponible sur flexipay.africa')">
+      <span class="menu-ico">🔏</span><span class="menu-txt">Politique de confidentialité</span><span class="menu-arr">›</span>
+    </a>
+
+    <div class="menu-section">Session</div>
+    <a class="menu-item danger-item" href="#" onclick="doLogout()">
+      <span class="menu-ico">🚪</span><span class="menu-txt">Se déconnecter</span><span class="menu-arr">›</span>
+    </a>
+
+    <div style="padding:20px;text-align:center;font-size:11px;color:var(--muted)">
+      FlexiPay v1.0.0 · Africa to Global<br>
+      © 2024 FlexiPay · Tous droits réservés
+    </div>
+  </div>
+  <nav class="bnav">
+    <a href="/dashboard" class="bi"><span class="bi-ico">🏠</span>Accueil</a>
+    <a href="/recharge" class="bi"><span class="bi-ico">⬇</span>Recharger</a>
+    <a href="/convert" class="bi"><span class="bi-ico">💱</span>Convertir</a>
+    <a href="/card" class="bi"><span class="bi-ico">💳</span>Carte</a>
+  </nav>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+const user = requireAuth();
+if (user) {
+  const initials = (user.first_name?.[0]||'') + (user.last_name?.[0]||'');
+  document.getElementById('avatar').textContent   = initials;
+  document.getElementById('p-name').textContent   = user.first_name + ' ' + user.last_name;
+  document.getElementById('p-email').textContent  = user.email;
+  const kycEl = document.getElementById('p-kyc');
+  if (user.kyc_status === 'verified') { kycEl.className='badge badge-done'; kycEl.textContent='✅ KYC Vérifié'; }
+  else if (user.kyc_status === 'rejected') { kycEl.className='badge badge-fail'; kycEl.textContent='❌ KYC Rejeté'; }
+  else { kycEl.className='badge badge-pend'; kycEl.textContent='⏳ KYC En attente'; }
+}
+function doLogout() {
+  DB.logout();
+  window.location.href = 'index.html';
+}
+</script>
+</body>
+</html>
+<script>
+(async function patchProfile(){
+  const user = await requireAuth(); if(!user) return;
+  const initials=(user.first_name?.[0]||'?')+(user.last_name?.[0]||'');
+  document.getElementById('avatar').textContent=initials;
+  document.getElementById('p-name').textContent=user.first_name+' '+user.last_name;
+  document.getElementById('p-email').textContent=user.email;
+  const kycEl=document.getElementById('p-kyc');
+  if(user.kyc_status==='verified'){kycEl.className='badge badge-done';kycEl.textContent='✅ KYC Vérifié';}
+  else if(user.kyc_status==='rejected'){kycEl.className='badge badge-fail';kycEl.textContent='❌ KYC Rejeté';}
+  else{kycEl.className='badge badge-pend';kycEl.textContent='⏳ KYC En attente';}
+})();
+async function doLogout(){
+  await API.logout();
+  location.href='/';
+}
+</script>

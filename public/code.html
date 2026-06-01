@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Code de Transaction</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.code-hero{display:flex;flex-direction:column;align-items:center;padding:20px 0 16px}
+.code-badge{width:74px;height:74px;background:linear-gradient(135deg,var(--blue),var(--green));border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:14px;box-shadow:0 12px 32px rgba(26,58,255,.3)}
+.code-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px 20px;text-align:center;margin-bottom:14px;width:100%}
+.code-num{font-size:48px;font-weight:800;letter-spacing:14px;color:var(--green);font-variant-numeric:tabular-nums}
+.code-sep{width:100%;height:1px;background:var(--border);margin:12px 0}
+.countdown{color:var(--gold);font-weight:700;font-size:14px}
+.instr-card{background:rgba(26,58,255,.06);border:1px solid rgba(26,58,255,.14);border-radius:14px;padding:16px;margin-bottom:14px;width:100%}
+.instr-title{font-size:13px;font-weight:700;color:#7aa2ff;margin-bottom:12px}
+.instr-step{display:flex;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:9px;align-items:flex-start;line-height:1.5}
+.instr-n{width:20px;height:20px;background:rgba(26,58,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:var(--blue)}
+.copy-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:4px 12px;color:var(--muted);font-size:11px;cursor:pointer;transition:.2s;font-family:var(--font);margin-left:10px}
+.copy-btn:hover{border-color:var(--blue);color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/recharge">←</a>
+    <span class="topbar-title">Code de Transaction</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad" style="display:flex;flex-direction:column;align-items:center">
+    <div class="step-bar" style="width:100%"><div class="sdot done"></div><div class="sdot on"></div><div class="sdot"></div></div>
+    <div class="code-hero">
+      <div class="code-badge">📲</div>
+      <div style="font-size:22px;font-weight:800;text-align:center;margin-bottom:6px">Votre Code de Paiement</div>
+      <div style="font-size:13px;color:var(--muted);text-align:center;line-height:1.6;max-width:300px">Entrez ce code dans votre app Mobile Money pour valider</div>
+    </div>
+
+    <div class="code-box" style="width:100%">
+      <div style="display:flex;align-items:center;justify-content:center">
+        <span class="code-num" id="the-code">——————</span>
+        <button class="copy-btn" onclick="copyCode()">📋 Copier</button>
+      </div>
+      <div class="code-sep"></div>
+      <div style="font-size:12px;color:var(--muted)">⏳ Expire dans: <span class="countdown" id="cd-timer">23:59:59</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Supprimé automatiquement après 24h</div>
+    </div>
+
+    <div class="instr-card">
+      <div class="instr-title">Comment utiliser avec <span id="op-name">Mobile Money</span></div>
+      <div class="instr-step"><div class="instr-n">1</div><span>Ouvrez l'app <strong id="op-app">Mobile Money</strong></span></div>
+      <div class="instr-step"><div class="instr-n">2</div><span>Sélectionnez <strong>"Paiement Marchand"</strong> ou <strong>"Payer un service"</strong></span></div>
+      <div class="instr-step"><div class="instr-n">3</div><span>Entrez le code à 6 chiffres ci-dessus</span></div>
+      <div class="instr-step"><div class="instr-n">4</div><span>Confirmez avec votre <strong>PIN Mobile Money</strong></span></div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:16px;width:100%">
+      <div class="kv-table">
+        <div class="kv-row"><span class="kv-k">Référence</span><span class="kv-v" id="kv-ref">—</span></div>
+        <div class="kv-row"><span class="kv-k">Opérateur</span><span class="kv-v" id="kv-op">—</span></div>
+        <div class="kv-row"><span class="kv-k">Téléphone</span><span class="kv-v" id="kv-tel">—</span></div>
+        <div class="kv-row"><span class="kv-k">Montant</span><span class="kv-v gv" id="kv-xaf">—</span></div>
+        <div class="kv-row"><span class="kv-k">Équivalent USD</span><span class="kv-v gv" id="kv-usd">—</span></div>
+        <div class="kv-row"><span class="kv-k">Statut</span><span class="kv-v"><span class="badge badge-pend" id="kv-status">⏳ En attente</span></span></div>
+      </div>
+    </div>
+
+    <button class="btn btn-green" id="confirm-btn" onclick="confirmPayment()" style="width:100%">✅ J'ai effectué le paiement</button>
+  </div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-ico" id="m-ico">✅</div>
+    <div class="modal-h1" id="m-h1">Paiement confirmé!</div>
+    <div class="modal-h2" id="m-h2"></div>
+    <button class="btn btn-blue" onclick="location.href='/dashboard'">Retour à l'accueil</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+requireAuth();
+const pending = JSON.parse(sessionStorage.getItem('fp_pending')||'null');
+if (!pending) { location.href='/recharge'; }
+else {
+  const { txn, code } = pending;
+  document.getElementById('the-code').textContent = code.code;
+  document.getElementById('kv-ref').textContent   = txn.ref;
+  document.getElementById('kv-op').textContent    = OPS[txn.operator]||txn.operator;
+  document.getElementById('kv-xaf').textContent   = fmtXAF(txn.amount_local);
+  document.getElementById('kv-usd').textContent   = '≈ '+fmtUSD(txn.amount_usd)+' USD';
+  document.getElementById('op-name').textContent  = OPS[txn.operator]||'';
+  document.getElementById('op-app').textContent   = OPS[txn.operator]||'';
+  startCountdown(code.expires_at, 'cd-timer');
+
+  // Get phone from session
+  getUser().then(u => {
+    document.getElementById('kv-tel').textContent = u?.phone || '—';
+  });
+}
+
+function copyCode() {
+  if (!pending) return;
+  navigator.clipboard?.writeText(pending.code.code) || document.execCommand('copy');
+  toast('📋 Code copié: '+pending.code.code);
+}
+
+async function confirmPayment() {
+  if (!pending) return;
+  const btn = document.getElementById('confirm-btn');
+  btn.textContent='⏳ Confirmation...'; btn.disabled=true;
+  try {
+    const data = await API.confirm(pending.txn.id);
+    document.getElementById('kv-status').className='badge badge-done';
+    document.getElementById('kv-status').textContent='✅ Confirmée';
+    document.getElementById('m-h2').textContent = `${fmtUSD(pending.txn.amount_usd)} crédités sur votre FlexiCard. Nouveau solde: ${fmtUSD(data.new_balance_usd)}`;
+    document.getElementById('modal-bg').classList.add('on');
+    sessionStorage.removeItem('fp_pending');
+  } catch(e) {
+    toast(e.message||'Erreur de confirmation','err');
+    btn.textContent='✅ J\'ai effectué le paiement'; btn.disabled=false;
+  }
+}
+</script>
+</body>
+</html>

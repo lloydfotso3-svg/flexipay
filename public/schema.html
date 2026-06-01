@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Schéma SQL</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.sql-block{background:#050d1a;border:1px solid rgba(26,58,255,.2);border-radius:14px;padding:18px;margin-bottom:16px;overflow-x:auto}
+.sql-block pre{font-family:'Courier New',monospace;font-size:11.5px;line-height:1.8;color:#8ab4f8;margin:0;white-space:pre}
+.kw{color:#ff79c6}.tb{color:#50fa7b}.ty{color:#ffb86c}.co{color:#6272a4}.str{color:#f1fa8c}
+.schema-title{font-size:11px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stack-card{background:rgba(0,217,126,.05);border:1px solid rgba(0,217,126,.1);border-radius:13px;padding:16px;margin-bottom:14px}
+.stack-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.stack-row:last-child{border-bottom:none}
+.stack-k{color:var(--muted)}
+.stack-v{font-weight:600;color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/">←</a>
+    <span class="topbar-title">Schéma Base de Données</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad">
+    <div class="sec-h1">Architecture SQL</div>
+    <div class="sec-h2">Base de données PostgreSQL complète — toutes les données utilisateurs, transactions, codes et logs sont stockées, trackées et auditables pour les investisseurs.</div>
+
+    <div class="schema-title">TABLE: users</div>
+    <div class="sql-block"><pre><span class="kw">CREATE TABLE</span> <span class="tb">users</span> (
+  id             <span class="ty">UUID</span>          <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  first_name     <span class="ty">VARCHAR(100)  NOT NULL</span>,
+  last_name      <span class="ty">VARCHAR(100)  NOT NULL</span>,
+  email          <span class="ty">VARCHAR(255)  UNIQUE NOT NULL</span>,
+  phone          <span class="ty">VARCHAR(25)   UNIQUE NOT NULL</span>,
+  country_code   <span class="ty">CHAR(2)       NOT NULL</span>,
+  date_of_birth  <span class="ty">DATE          NOT NULL</span>,
+  password_hash  <span class="ty">TEXT          NOT NULL</span>,   <span class="co">-- bcrypt</span>
+  pin_hash       <span class="ty">TEXT          NOT NULL</span>,   <span class="co">-- bcrypt</span>
+  kyc_status     <span class="ty">VARCHAR(20)   DEFAULT</span> <span class="str">'pending'</span>,  <span class="co">-- pending|verified|rejected</span>
+  kyc_doc_type   <span class="ty">VARCHAR(50)</span>,
+  kyc_doc_num    <span class="ty">VARCHAR(50)</span>,
+  kyc_verified_at <span class="ty">TIMESTAMP</span>,
+  balance_usd    <span class="ty">DECIMAL(15,4) DEFAULT 0.0000</span>,
+  card_number    <span class="ty">TEXT</span>,                        <span class="co">-- AES-256 encrypted</span>
+  card_expiry    <span class="ty">DATE</span>,
+  card_cvv_hash  <span class="ty">TEXT</span>,                        <span class="co">-- hashed</span>
+  card_frozen    <span class="ty">BOOLEAN       DEFAULT FALSE</span>,
+  daily_limit    <span class="ty">DECIMAL(10,2) DEFAULT 500.00</span>,
+  is_active      <span class="ty">BOOLEAN       DEFAULT TRUE</span>,
+  last_login     <span class="ty">TIMESTAMP</span>,
+  created_at     <span class="ty">TIMESTAMP     DEFAULT NOW()</span>,
+  updated_at     <span class="ty">TIMESTAMP     DEFAULT NOW()</span>
+);
+
+<span class="kw">CREATE INDEX</span> idx_users_email   <span class="kw">ON</span> <span class="tb">users</span>(email);
+<span class="kw">CREATE INDEX</span> idx_users_phone   <span class="kw">ON</span> <span class="tb">users</span>(phone);
+<span class="kw">CREATE INDEX</span> idx_users_country <span class="kw">ON</span> <span class="tb">users</span>(country_code);</pre></div>
+
+    <div class="schema-title">TABLE: transactions</div>
+    <div class="sql-block"><pre><span class="kw">CREATE TABLE</span> <span class="tb">transactions</span> (
+  id              <span class="ty">UUID</span>          <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  ref             <span class="ty">VARCHAR(30)   UNIQUE NOT NULL</span>,  <span class="co">-- FP-2024-XXXXX</span>
+  user_id         <span class="ty">UUID          REFERENCES</span> <span class="tb">users</span>(id) <span class="kw">ON DELETE SET NULL</span>,
+  user_name       <span class="ty">VARCHAR(200)</span>,
+  type            <span class="ty">VARCHAR(30)   NOT NULL</span>,  <span class="co">-- recharge|conversion|card_payment|refund</span>
+  operator        <span class="ty">VARCHAR(20)</span>,              <span class="co">-- mtn|orange|airtel</span>
+  amount_local    <span class="ty">DECIMAL(15,2)</span>,
+  currency_local  <span class="ty">CHAR(3)</span>,
+  amount_usd      <span class="ty">DECIMAL(15,4)</span>,
+  target_currency <span class="ty">CHAR(3)       DEFAULT</span> <span class="str">'USD'</span>,
+  exchange_rate   <span class="ty">DECIMAL(12,6)</span>,
+  fee             <span class="ty">DECIMAL(10,4) DEFAULT 0</span>,
+  status          <span class="ty">VARCHAR(20)   DEFAULT</span> <span class="str">'pending'</span>, <span class="co">-- pending|completed|failed|flagged</span>
+  country_code    <span class="ty">CHAR(2)</span>,
+  phone_number    <span class="ty">VARCHAR(25)</span>,
+  ip_address      <span class="ty">INET</span>,
+  device_hash     <span class="ty">TEXT</span>,
+  completed_at    <span class="ty">TIMESTAMP</span>,
+  created_at      <span class="ty">TIMESTAMP     DEFAULT NOW()</span>
+);
+
+<span class="kw">CREATE INDEX</span> idx_txn_user    <span class="kw">ON</span> <span class="tb">transactions</span>(user_id);
+<span class="kw">CREATE INDEX</span> idx_txn_status  <span class="kw">ON</span> <span class="tb">transactions</span>(status);
+<span class="kw">CREATE INDEX</span> idx_txn_country <span class="kw">ON</span> <span class="tb">transactions</span>(country_code);
+<span class="kw">CREATE INDEX</span> idx_txn_created <span class="kw">ON</span> <span class="tb">transactions</span>(created_at <span class="kw">DESC</span>);</pre></div>
+
+    <div class="schema-title">TABLE: payment_codes</div>
+    <div class="sql-block"><pre><span class="kw">CREATE TABLE</span> <span class="tb">payment_codes</span> (
+  id              <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  transaction_id  <span class="ty">UUID         REFERENCES</span> <span class="tb">transactions</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  code            <span class="ty">VARCHAR(8)   NOT NULL</span>,    <span class="co">-- 6 chiffres, usage unique</span>
+  expires_at      <span class="ty">TIMESTAMP    NOT NULL</span>,    <span class="co">-- created_at + 24h</span>
+  is_used         <span class="ty">BOOLEAN      DEFAULT FALSE</span>,
+  used_at         <span class="ty">TIMESTAMP</span>,
+  created_at      <span class="ty">TIMESTAMP    DEFAULT NOW()</span>,
+  <span class="kw">CONSTRAINT</span> chk_expiry <span class="kw">CHECK</span> (expires_at > created_at)
+);
+
+<span class="co">-- Index pour purge automatique (pg_cron toutes les heures)</span>
+<span class="kw">CREATE INDEX</span> idx_code_expiry <span class="kw">ON</span> <span class="tb">payment_codes</span>(expires_at);
+
+<span class="co">-- Cron job: suppression automatique après 24h</span>
+<span class="co">-- SELECT cron.schedule('purge-codes','0 * * * *',</span>
+<span class="co">--   'DELETE FROM payment_codes WHERE expires_at &lt; NOW()'); </span></pre></div>
+
+    <div class="schema-title">TABLE: fraud_logs</div>
+    <div class="sql-block"><pre><span class="kw">CREATE TABLE</span> <span class="tb">fraud_logs</span> (
+  id              <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  user_id         <span class="ty">UUID         REFERENCES</span> <span class="tb">users</span>(id),
+  transaction_id  <span class="ty">UUID         REFERENCES</span> <span class="tb">transactions</span>(id),
+  risk_score      <span class="ty">SMALLINT     CHECK</span> (risk_score <span class="kw">BETWEEN</span> 0 <span class="kw">AND</span> 100),
+  flag_reason     <span class="ty">TEXT</span>,
+  flag_type       <span class="ty">VARCHAR(50)</span>,  <span class="co">-- unusual_amount|new_country|high_freq|velocity</span>
+  reviewed_by     <span class="ty">UUID         REFERENCES</span> <span class="tb">admins</span>(id),
+  reviewed_at     <span class="ty">TIMESTAMP</span>,
+  action_taken    <span class="ty">VARCHAR(20)  DEFAULT</span> <span class="str">'none'</span>, <span class="co">-- none|approved|blocked|escalated</span>
+  notes           <span class="ty">TEXT</span>,
+  created_at      <span class="ty">TIMESTAMP    DEFAULT NOW()</span>
+);</pre></div>
+
+    <div class="schema-title">TABLE: admins</div>
+    <div class="sql-block"><pre><span class="kw">CREATE TABLE</span> <span class="tb">admins</span> (
+  id             <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  email          <span class="ty">VARCHAR(255) UNIQUE NOT NULL</span>,
+  password_hash  <span class="ty">TEXT         NOT NULL</span>,
+  role           <span class="ty">VARCHAR(30)  DEFAULT</span> <span class="str">'support'</span>, <span class="co">-- super_admin|compliance|support</span>
+  permissions    <span class="ty">JSONB        DEFAULT</span> <span class="str">'{}'</span>::jsonb,
+  is_active      <span class="ty">BOOLEAN      DEFAULT TRUE</span>,
+  last_login     <span class="ty">TIMESTAMP</span>,
+  created_at     <span class="ty">TIMESTAMP    DEFAULT NOW()</span>
+);</pre></div>
+
+    <div class="schema-title">TABLE: exchange_rates</div>
+    <div class="sql-block"><pre><span class="kw">CREATE TABLE</span> <span class="tb">exchange_rates</span> (
+  id            <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  from_currency <span class="ty">CHAR(3)      NOT NULL</span>,   <span class="co">-- XAF, GNF, NGN...</span>
+  to_currency   <span class="ty">CHAR(3)      NOT NULL</span>,   <span class="co">-- USD, EUR, GBP...</span>
+  rate          <span class="ty">DECIMAL(12,6) NOT NULL</span>,
+  source        <span class="ty">VARCHAR(50)</span>,              <span class="co">-- ECB, OpenExchange...</span>
+  recorded_at   <span class="ty">TIMESTAMP    DEFAULT NOW()</span>
+);
+
+<span class="kw">CREATE INDEX</span> idx_rates_pair <span class="kw">ON</span> <span class="tb">exchange_rates</span>(from_currency, to_currency);
+<span class="kw">CREATE INDEX</span> idx_rates_time <span class="kw">ON</span> <span class="tb">exchange_rates</span>(recorded_at <span class="kw">DESC</span>);</pre></div>
+
+    <div class="schema-title">🔧 Stack Technique Recommandé</div>
+    <div class="stack-card">
+      <div class="stack-row"><span class="stack-k">Backend</span><span class="stack-v">Node.js + Express / Django REST</span></div>
+      <div class="stack-row"><span class="stack-k">Base de données</span><span class="stack-v">PostgreSQL 15 + Redis (cache)</span></div>
+      <div class="stack-row"><span class="stack-k">Auth & Sécurité</span><span class="stack-v">JWT + bcrypt + 2FA (TOTP)</span></div>
+      <div class="stack-row"><span class="stack-k">KYC / AML</span><span class="stack-v">Smile Identity API (Afrique)</span></div>
+      <div class="stack-row"><span class="stack-k">Paiements Mobile</span><span class="stack-v">Flutterwave / Pawapay API</span></div>
+      <div class="stack-row"><span class="stack-k">Taux de change</span><span class="stack-v">Open Exchange Rates API</span></div>
+      <div class="stack-row"><span class="stack-k">Hébergement</span><span class="stack-v">AWS Lagos (af-south-1) / GCP</span></div>
+      <div class="stack-row"><span class="stack-k">Chiffrement</span><span class="stack-v">AES-256-GCM (données carte)</span></div>
+      <div class="stack-row"><span class="stack-k">Emails</span><span class="stack-v">SendGrid / Mailgun</span></div>
+      <div class="stack-row"><span class="stack-k">Monitoring</span><span class="stack-v">Datadog / Sentry</span></div>
+    </div>
+  </div>
+  </div>
+</div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+</body>
+</html>

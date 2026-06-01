@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Créer un compte</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.step{display:none}.step.active{display:block;animation:fadeUp .3s ease}
+.auth-switch{text-align:center;font-size:13px;color:var(--muted);margin-top:18px}
+.auth-switch a{color:var(--blue);font-weight:600;text-decoration:none}
+.upload-zone{background:var(--card);border:1.5px dashed rgba(26,58,255,.35);border-radius:14px;padding:22px;text-align:center;margin-bottom:12px;transition:.2s;position:relative;overflow:hidden}
+.upload-zone:hover{border-color:var(--blue);background:rgba(26,58,255,.04)}
+.upload-zone.done{border-color:var(--green);background:rgba(0,217,126,.04)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uz-ico{font-size:28px;margin-bottom:7px}
+.uz-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.uz-sub{font-size:11px;color:var(--muted)}
+.strength{display:flex;gap:4px;margin-top:6px;margin-bottom:14px}
+.sb{flex:1;height:3px;border-radius:2px;background:var(--border);transition:.3s}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/login">←</a>
+    <span class="topbar-title">Créer un compte</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad" style="padding-top:14px">
+    <div class="kyc-bar">
+      <div class="kp active" id="kp1"></div>
+      <div class="kp" id="kp2"></div>
+      <div class="kp" id="kp3"></div>
+    </div>
+
+    <!-- ── ÉTAPE 1 : Infos personnelles ── -->
+    <div class="step active" id="step1">
+      <div class="sec-h1">Informations personnelles</div>
+      <div class="sec-h2">Étape 1/3 · Données chiffrées AES-256</div>
+      <div class="err-box" id="err1"></div>
+      <div class="two-col">
+        <div class="field"><label class="fp-label">Prénom</label><input class="fp-input" id="r-first" placeholder="Kouamé" autocomplete="given-name"></div>
+        <div class="field"><label class="fp-label">Nom</label><input class="fp-input" id="r-last" placeholder="Olivier" autocomplete="family-name"></div>
+      </div>
+      <div class="field">
+        <label class="fp-label">Email</label>
+        <div class="input-wrap"><span class="input-ico">✉</span>
+          <input class="fp-input" id="r-email" type="email" placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+      </div>
+      <div class="field">
+        <label class="fp-label">Pays de résidence</label>
+        <div class="select-wrap">
+          <span class="select-flag" id="reg-flag">🇨🇲</span>
+          <select class="fp-select" id="r-country" style="padding-left:44px"></select>
+          <span class="select-arrow">▾</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fp-label">Téléphone Mobile Money</label>
+        <div class="phone-row">
+          <select class="phone-code" id="r-dial"><option>🇨🇲 +237</option></select>
+          <input class="phone-input" id="r-phone" type="tel" placeholder="6XX XXX XXX" autocomplete="tel">
+        </div>
+      </div>
+      <div class="field">
+        <label class="fp-label">Date de naissance</label>
+        <input class="fp-input" id="r-dob" type="date">
+      </div>
+      <button class="btn btn-blue mt14" onclick="step1Next()">Continuer →</button>
+    </div>
+
+    <!-- ── ÉTAPE 2 : Sécurité ── -->
+    <div class="step" id="step2">
+      <div class="sec-h1">Sécurité du compte</div>
+      <div class="sec-h2">Étape 2/3 · Mot de passe fort requis</div>
+      <div class="err-box" id="err2"></div>
+      <div class="field">
+        <label class="fp-label">Mot de passe</label>
+        <div class="input-wrap" style="position:relative">
+          <span class="input-ico">🔒</span>
+          <input class="fp-input" id="r-pass" type="password" placeholder="8 caractères minimum" oninput="checkStrength()" autocomplete="new-password">
+          <button class="input-eye" onclick="togglePwd('r-pass')">👁</button>
+        </div>
+        <div class="strength">
+          <div class="sb" id="sb1"></div><div class="sb" id="sb2"></div>
+          <div class="sb" id="sb3"></div><div class="sb" id="sb4"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fp-label">Confirmer mot de passe</label>
+        <div class="input-wrap" style="position:relative">
+          <span class="input-ico">🔒</span>
+          <input class="fp-input" id="r-pass2" type="password" placeholder="Répéter le mot de passe" autocomplete="new-password">
+          <button class="input-eye" onclick="togglePwd('r-pass2')">👁</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fp-label">Code PIN (4 chiffres)</label>
+        <input class="fp-input" id="r-pin" type="password" maxlength="4" inputmode="numeric" placeholder="••••" style="letter-spacing:10px;font-size:22px;text-align:center" autocomplete="new-password">
+      </div>
+      <div class="warn-box mt14">⚠️ Le PIN sera demandé pour chaque transaction. Ne le partagez jamais.</div>
+      <div class="btn-row mt18">
+        <button class="btn btn-outline btn-sm" onclick="goStep(1)">← Retour</button>
+        <button class="btn btn-blue" style="flex:1" onclick="step2Next()">Continuer →</button>
+      </div>
+    </div>
+
+    <!-- ── ÉTAPE 3 : KYC Document ── -->
+    <div class="step" id="step3">
+      <div class="sec-h1">Vérification d'identité</div>
+      <div class="sec-h2">Étape 3/3 · KYC requis par la loi africaine anti-blanchiment</div>
+      <div class="err-box" id="err3"></div>
+
+      <div class="field">
+        <label class="fp-label">Type de document</label>
+        <select class="fp-select" id="r-doctype">
+          <option value="CNI">Carte Nationale d'Identité (CNI)</option>
+          <option value="passport">Passeport</option>
+          <option value="permis">Permis de conduire</option>
+          <option value="sejour">Carte de séjour</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fp-label">Numéro du document</label>
+        <input class="fp-input" id="r-docnum" placeholder="Ex: CM-123456789">
+      </div>
+
+      <!-- Upload réel du document -->
+      <label class="fp-label">Photo du document (recto)</label>
+      <div class="upload-zone" id="uz-doc">
+        <input type="file" id="file-doc" accept="image/*,.pdf" onchange="onFileSelected('doc', this)">
+        <div class="uz-ico" id="uz-doc-ico">📸</div>
+        <div class="uz-title" id="uz-doc-title">Cliquer ou déposer le fichier ici</div>
+        <div class="uz-sub">JPG, PNG ou PDF · Max 5MB</div>
+      </div>
+
+      <!-- Upload réel du selfie -->
+      <label class="fp-label">Selfie avec votre document</label>
+      <div class="upload-zone" id="uz-selfie">
+        <input type="file" id="file-selfie" accept="image/*" capture="user" onchange="onFileSelected('selfie', this)">
+        <div class="uz-ico" id="uz-selfie-ico">🤳</div>
+        <div class="uz-title" id="uz-selfie-title">Cliquer pour prendre/choisir une photo</div>
+        <div class="uz-sub">Maintenez le document visible et lisible</div>
+      </div>
+
+      <p class="terms mt14">En créant un compte vous acceptez nos <a href="#">Conditions d'utilisation</a> et <a href="#">Politique de confidentialité</a>. Vos données sont traitées conformément à la réglementation KYC/AML.</p>
+
+      <div class="btn-row mt18">
+        <button class="btn btn-outline btn-sm" onclick="goStep(2)">← Retour</button>
+        <button class="btn btn-green" style="flex:1" id="reg-btn" onclick="finishReg()">✅ Créer mon compte</button>
+      </div>
+    </div>
+
+    <div class="auth-switch" style="margin-top:18px">
+      Déjà un compte ? <a href="/login">Se connecter</a>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- Modal succès -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-ico">🎉</div>
+    <div class="modal-h1">Compte créé avec succès!</div>
+    <div class="modal-h2" id="m-h2"></div>
+    <button class="btn btn-blue" onclick="location.href='/dashboard'">Accéder à mon compte →</button>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+let docFile = null, selfieFile = null;
+
+// Populate country dropdowns
+populateCountrySelect(
+  document.getElementById('r-country'),
+  document.getElementById('reg-flag'),
+  document.getElementById('r-dial')
+);
+
+function showErr(id, msg) {
+  const e = document.getElementById(id);
+  e.textContent = msg;
+  e.style.display = 'block';
+  window.scrollTo(0, 0);
+  setTimeout(() => e.style.display = 'none', 5000);
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  ['kp1','kp2','kp3'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('active', 'done');
+    if (i + 1 < n)  el.classList.add('done');
+    if (i + 1 === n) el.classList.add('active');
+  });
+  window.scrollTo(0, 0);
+}
+
+function step1Next() {
+  const first = document.getElementById('r-first').value.trim();
+  const last  = document.getElementById('r-last').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const dob   = document.getElementById('r-dob').value;
+  if (!first || !last)           return showErr('err1', 'Entrez votre prénom et nom.');
+  if (!email || !email.includes('@')) return showErr('err1', 'Adresse email invalide.');
+  if (!phone || phone.length < 6)    return showErr('err1', 'Numéro de téléphone invalide.');
+  if (!dob)                      return showErr('err1', 'Date de naissance requise.');
+  const age = (Date.now() - new Date(dob)) / (1000*60*60*24*365.25);
+  if (age < 18) return showErr('err1', 'Vous devez avoir au moins 18 ans.');
+  goStep(2);
+}
+
+function checkStrength() {
+  const p = document.getElementById('r-pass').value;
+  const score = [p.length >= 8, /[A-Z]/.test(p), /[0-9]/.test(p), /[^A-Za-z0-9]/.test(p)].filter(Boolean).length;
+  const colors = ['#ff5050', '#ff9800', 'var(--gold)', 'var(--green)'];
+  ['sb1','sb2','sb3','sb4'].forEach((id, i) => {
+    document.getElementById(id).style.background = i < score ? colors[score - 1] : 'var(--border)';
+  });
+}
+
+function step2Next() {
+  const p   = document.getElementById('r-pass').value;
+  const p2  = document.getElementById('r-pass2').value;
+  const pin = document.getElementById('r-pin').value;
+  if (p.length < 8)      return showErr('err2', 'Minimum 8 caractères.');
+  if (p !== p2)          return showErr('err2', 'Les mots de passe ne correspondent pas.');
+  if (!/^\d{4}$/.test(pin)) return showErr('err2', 'PIN: exactement 4 chiffres.');
+  goStep(3);
+}
+
+function onFileSelected(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    toast('⚠️ Fichier trop grand (max 5MB)', 'err');
+    input.value = '';
+    return;
+  }
+  const zone  = document.getElementById('uz-' + type);
+  const title = document.getElementById('uz-' + type + '-title');
+  const ico   = document.getElementById('uz-' + type + '-ico');
+  zone.classList.add('done');
+  ico.textContent   = '✅';
+  title.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+  if (type === 'doc')    docFile = file;
+  if (type === 'selfie') selfieFile = file;
+  toast('✅ Fichier sélectionné: ' + file.name);
+}
+
+async function finishReg() {
+  const docnum = document.getElementById('r-docnum').value.trim();
+  if (!docnum)    return showErr('err3', 'Entrez le numéro de votre document.');
+  if (!docFile)   return showErr('err3', 'Veuillez sélectionner la photo de votre document.');
+  if (!selfieFile) return showErr('err3', 'Veuillez prendre un selfie de vérification.');
+
+  const btn = document.getElementById('reg-btn');
+  btn.textContent = '⏳ Création du compte...';
+  btn.disabled = true;
+
+  const countryVal  = document.getElementById('r-country').value;
+  const dialText    = document.querySelector('#r-dial option').textContent;
+  const dialCode    = dialText.split(' ')[1] || '+237';
+  const phoneNumber = dialCode + document.getElementById('r-phone').value.trim();
+
+  try {
+    // Step 1: Create account
+    const data = await API.register({
+      first_name:    document.getElementById('r-first').value.trim(),
+      last_name:     document.getElementById('r-last').value.trim(),
+      email:         document.getElementById('r-email').value.trim(),
+      password:      document.getElementById('r-pass').value,
+      pin:           document.getElementById('r-pin').value,
+      phone:         phoneNumber,
+      country_code:  countryVal,
+      date_of_birth: document.getElementById('r-dob').value,
+      kyc_doc_type:  document.getElementById('r-doctype').value,
+      kyc_doc_num:   docnum,
+    });
+
+    setUser(data.user);
+
+    // Step 2: Upload KYC documents
+    btn.textContent = '⏳ Envoi des documents KYC...';
+    const formData = new FormData();
+    formData.append('doc', docFile);
+    formData.append('selfie', selfieFile);
+    formData.append('user_id', data.user.id);
+
+    await fetch('/api/auth/upload-kyc', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+
+    // Success
+    document.getElementById('m-h2').textContent =
+      `Bienvenue ${data.user.first_name}! Votre identité est en cours de vérification (24-48h). Vous pouvez déjà utiliser FlexiPay.`;
+    document.getElementById('modal-bg').classList.add('on');
+
+  } catch(e) {
+    showErr('err3', e.message || 'Erreur lors de la création du compte. Réessayez.');
+    btn.textContent = '✅ Créer mon compte';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

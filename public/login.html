@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Connexion</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.auth-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 20px 48px}
+.auth-logo{text-align:center;margin-bottom:24px}
+.auth-logo img{height:52px;object-fit:contain}
+.auth-switch{text-align:center;font-size:13px;color:var(--muted);margin-top:18px}
+.auth-switch a{color:var(--blue);font-weight:600;cursor:pointer;text-decoration:none}
+.demo-hint{background:rgba(0,217,126,.06);border:1px solid rgba(0,217,126,.12);border-radius:11px;padding:12px;font-size:12px;color:var(--muted);margin-top:14px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="scroll">
+<div class="auth-wrap">
+  <div class="auth-logo"><img id="fp-logo" alt="FlexiPay"></div>
+  <div class="card card-pad fade-up">
+    <div class="sec-h1">Bon retour 👋</div>
+    <div class="sec-h2">Connectez-vous à votre compte FlexiPay</div>
+    <div class="err-box" id="err-box"></div>
+    <div class="field">
+      <label class="fp-label">Email</label>
+      <div class="input-wrap"><span class="input-ico">✉</span>
+        <input class="fp-input" id="l-email" type="email" placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fp-label">Mot de passe</label>
+      <div class="input-wrap" style="position:relative">
+        <span class="input-ico">🔒</span>
+        <input class="fp-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        <button class="input-eye" onclick="togglePwd('l-pass')">👁</button>
+      </div>
+    </div>
+    <div style="text-align:right;margin-bottom:18px">
+      <a style="font-size:12px;color:var(--blue);cursor:pointer">Mot de passe oublié ?</a>
+    </div>
+    <button class="btn btn-blue" id="login-btn" onclick="doLogin()">🔐 Se connecter</button>
+    <div class="demo-hint">💡 Démo: <strong style="color:var(--text)">demo@flexipay.africa</strong> · <strong style="color:var(--text)">Demo2024!</strong></div>
+  </div>
+  <div class="auth-switch">Pas de compte ? <a href="/register">Créer un compte</a></div>
+</div>
+</div>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+document.getElementById('fp-logo').src = ASSETS.FLEXIPAY;
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const err   = document.getElementById('err-box');
+  const btn   = document.getElementById('login-btn');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent='Remplissez tous les champs.'; err.style.display='block'; return; }
+  btn.textContent='⏳ Connexion...'; btn.disabled=true;
+  try {
+    const data = await API.login(email, pass);
+    setUser(data.user);
+    location.href = '/dashboard';
+  } catch(e) {
+    err.textContent = e.message || 'Erreur de connexion';
+    err.style.display = 'block';
+    btn.textContent='🔐 Se connecter'; btn.disabled=false;
+  }
+}
+</script>
+</body>
+</html>

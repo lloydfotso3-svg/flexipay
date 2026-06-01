@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Ma Carte</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.vcard{background:linear-gradient(140deg,#0e2280 0%,#1a3aff 48%,#0d3055 100%);border-radius:20px;padding:24px 20px;position:relative;overflow:hidden;margin-bottom:22px;box-shadow:0 20px 55px rgba(26,58,255,.35)}
+.vc-grid{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0,rgba(255,255,255,.015) 1px,transparent 0,transparent 50%);background-size:22px 22px}
+.vc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;position:relative;z-index:1}
+.vc-logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800}
+.vc-logo img{height:22px;object-fit:contain;filter:brightness(10)}
+.vc-chip{width:40px;height:30px;background:linear-gradient(135deg,#c8973c,#f5c842);border-radius:6px;position:relative;z-index:1}
+.vc-num{font-size:17px;font-weight:600;letter-spacing:3px;margin:14px 0 18px;position:relative;z-index:1;opacity:.9}
+.vc-bot{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
+.vc-fl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;opacity:.5;margin-bottom:3px}
+.vc-fv{font-size:13px;font-weight:600}
+.mc-circles{display:flex}
+.mc-c1{width:32px;height:32px;background:rgba(255,80,80,.75);border-radius:50%}
+.mc-c2{width:32px;height:32px;background:rgba(255,160,0,.75);border-radius:50%;margin-left:-10px}
+.card-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.cs{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px}
+.cs-lbl{font-size:11px;color:var(--muted);margin-bottom:5px}
+.cs-val{font-size:19px;font-weight:700}
+.cs-val.gv{color:var(--green)}
+.cvv-reveal{cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px}
+.frozen-overlay{position:absolute;inset:0;background:rgba(7,16,31,.75);border-radius:20px;display:none;align-items:center;justify-content:center;z-index:10;font-size:40px}
+.frozen-overlay.on{display:flex}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/dashboard">←</a>
+    <span class="topbar-title">Ma FlexiCard</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad">
+
+    <div class="vcard" id="vcard">
+      <div class="vc-grid"></div>
+      <div class="frozen-overlay" id="frozen-ov">🔒</div>
+      <div class="vc-top">
+        <div class="vc-logo"><img id="fp-logo-card" alt="FlexiPay"> Virtual</div>
+        <span style="font-size:20px;opacity:.7;position:relative;z-index:1">📶</span>
+      </div>
+      <div class="vc-chip"></div>
+      <div class="vc-num" id="card-number">4821 •••• •••• ––––</div>
+      <div class="vc-bot">
+        <div><div class="vc-fl">Titulaire</div><div class="vc-fv" id="card-holder">– –</div></div>
+        <div><div class="vc-fl">Expire</div><div class="vc-fv" id="card-expiry">––/––</div></div>
+        <div><div class="vc-fl">Solde</div><div class="vc-fv" style="color:var(--green)" id="card-bal">$0.00</div></div>
+        <div class="mc-circles"><div class="mc-c1"></div><div class="mc-c2"></div></div>
+      </div>
+    </div>
+
+    <div class="card-stats">
+      <div class="cs"><div class="cs-lbl">Dépenses ce mois</div><div class="cs-val" id="monthly-spent">$0.00</div></div>
+      <div class="cs"><div class="cs-lbl">Transactions</div><div class="cs-val gv" id="txn-count">0</div></div>
+      <div class="cs"><div class="cs-lbl">Limite quotidienne</div><div class="cs-val" id="daily-limit">$500</div></div>
+      <div class="cs" onclick="revealCVV()" style="cursor:pointer">
+        <div class="cs-lbl">CVV sécurisé</div>
+        <div class="cs-val cvv-reveal" id="cvv-display">👁 Voir</div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:20px">
+      <button class="btn btn-blue" onclick="window.location.href='/recharge'">⬇ Recharger</button>
+      <button class="btn btn-outline" id="freeze-btn" onclick="toggleFreeze()">🔒 Geler</button>
+    </div>
+
+    <div style="margin-bottom:12px;font-size:15px;font-weight:700">Historique de la carte</div>
+    <div id="card-txns"></div>
+  </div>
+  </div>
+  <nav class="bnav">
+    <a href="/dashboard" class="bi"><span class="bi-ico">🏠</span>Accueil</a>
+    <a href="/recharge" class="bi"><span class="bi-ico">⬇</span>Recharger</a>
+    <a href="/convert" class="bi"><span class="bi-ico">💱</span>Convertir</a>
+    <a href="/card" class="bi on"><span class="bi-ico">💳</span>Carte</a>
+  </nav>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+const user = requireAuth();
+let frozen = false;
+let cvvVisible = false;
+
+if (user) {
+  document.getElementById('fp-logo-card').src = ASSETS.FLEXIPAY;
+  const card = user.card || {};
+  document.getElementById('card-number').textContent  = card.number  || '4821 •••• •••• ––––';
+  document.getElementById('card-holder').textContent  = (user.first_name + ' ' + user.last_name).toUpperCase();
+  document.getElementById('card-expiry').textContent  = card.expiry  || '––/––';
+  document.getElementById('card-bal').textContent     = fmtUSD(user.balance_usd || 0);
+  document.getElementById('daily-limit').textContent  = fmtUSD(card.daily_limit || 500);
+
+  frozen = card.frozen || false;
+  if (frozen) { document.getElementById('frozen-ov').classList.add('on'); document.getElementById('freeze-btn').textContent = '🔓 Dégeler'; }
+
+  // Stats
+  const txns = DB.getTransactions().filter(t => t.user_id === user.id);
+  const now = new Date(); const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const spent = txns.filter(t => t.type==='card_payment' && new Date(t.created_at)>=startMonth).reduce((s,t)=>s+Math.abs(t.amount_usd||0),0);
+  document.getElementById('monthly-spent').textContent = fmtUSD(spent);
+  document.getElementById('txn-count').textContent = txns.length;
+
+  // Txn list (show all types)
+  const listEl = document.getElementById('card-txns');
+  const all = txns.length ? txns : DB.getTransactions().slice(0,6);
+  const icons = { recharge:'⬇', conversion:'💱', card_payment:'🛒', refund:'↩' };
+  listEl.innerHTML = all.slice(0,8).map(t => {
+    const cls = t.type==='card_payment'?'out':(t.status==='pending'?'pend':'in');
+    const sign = t.type==='card_payment'?'-':'+';
+    return `<div class="txn-item">
+      <div class="ti-ico ${cls}">${icons[t.type]||'💸'}</div>
+      <div class="ti-info">
+        <div class="ti-name">${t.type==='recharge'?'Recharge '+OPS[t.operator]:t.type==='conversion'?'Conversion XAF → '+(t.currency||'USD'):'Paiement carte'}</div>
+        <div class="ti-date">${fmtDate(t.created_at)}</div>
+      </div>
+      <div class="ti-amt ${cls}">${t.status==='pending'?'En attente':sign+fmtUSD(Math.abs(t.amount_usd||0))}</div>
+    </div>`;
+  }).join('') || '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Aucune transaction</p>';
+}
+
+function toggleFreeze() {
+  if (!user) return;
+  frozen = !frozen;
+  const overlay = document.getElementById('frozen-ov');
+  const btn = document.getElementById('freeze-btn');
+  overlay.classList.toggle('on', frozen);
+  btn.textContent = frozen ? '🔓 Dégeler' : '🔒 Geler';
+  const card = user.card || {};
+  DB.updateUser(user.id, { card: { ...card, frozen } });
+  toast(frozen ? '🔒 Carte gelée avec succès' : '🔓 Carte dégelée avec succès');
+}
+
+let cvvTimer;
+function revealCVV() {
+  if (!user || !user.card) return;
+  const el = document.getElementById('cvv-display');
+  if (cvvVisible) return;
+  cvvVisible = true;
+  el.textContent = '🔓 ' + (user.card.cvv || '•••');
+  el.style.color = 'var(--green)';
+  clearTimeout(cvvTimer);
+  cvvTimer = setTimeout(() => { el.textContent='👁 Voir'; el.style.color=''; cvvVisible=false; }, 15000);
+  toast('🔐 CVV visible 15 secondes seulement');
+}
+</script>
+</body>
+</html>
+<script>
+// Override card init with real API
+(async function patchCard(){
+  const user = await requireAuth(); if(!user) return;
+  document.getElementById('fp-logo-card').src = ASSETS.FLEXIPAY;
+  document.getElementById('card-number').textContent = user.card_number||'4821 •••• •••• ––––';
+  document.getElementById('card-holder').textContent = (user.first_name+' '+user.last_name).toUpperCase();
+  document.getElementById('card-expiry').textContent = user.card_expiry||'09/28';
+  document.getElementById('card-bal').textContent    = fmtUSD(user.balance_usd||0);
+  document.getElementById('daily-limit').textContent = fmtUSD(user.daily_limit_usd||500);
+  frozen = user.card_frozen||false;
+  if(frozen){document.getElementById('frozen-ov').classList.add('on');document.getElementById('freeze-btn').textContent='🔓 Dégeler';}
+
+  // Load txns from API
+  try {
+    const data = await API.getTransactions({limit:8});
+    const txns=data.transactions||[];
+    const icons={recharge:'⬇',conversion:'💱',card_payment:'🛒',refund:'↩'};
+    document.getElementById('card-txns').innerHTML = txns.length ? txns.map(t=>{
+      const cls=t.type==='card_payment'?'out':(t.status==='pending'?'pend':'in');
+      const sign=t.type==='card_payment'?'-':'+';
+      return `<div class="txn-item">
+        <div class="ti-ico ${cls}">${icons[t.type]||'💸'}</div>
+        <div class="ti-info"><div class="ti-name">${t.type==='recharge'?'Recharge '+(OPS[t.operator]||''):t.type==='conversion'?'Conversion XAF→'+(t.target_currency||'USD'):'Paiement carte'}</div><div class="ti-date">${fmtDate(t.created_at)}</div></div>
+        <div class="ti-amt ${cls}">${t.status==='pending'?'En attente':sign+fmtUSD(Math.abs(t.amount_usd||0))}</div>
+      </div>`;
+    }).join('') : '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Aucune transaction</p>';
+  } catch{}
+})();
+
+// Override freeze with real API
+async function toggleFreeze(){
+  frozen=!frozen;
+  const ov=document.getElementById('frozen-ov');
+  const btn=document.getElementById('freeze-btn');
+  ov.classList.toggle('on',frozen);
+  btn.textContent=frozen?'🔓 Dégeler':'🔒 Geler';
+  try { await API.freezeCard(frozen); toast(frozen?'🔒 Carte gelée':'🔓 Carte dégelée'); }
+  catch(e){ toast(e.message,'err'); frozen=!frozen; ov.classList.toggle('on',frozen); }
+}
+</script>

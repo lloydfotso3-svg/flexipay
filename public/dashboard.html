@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Accueil</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.topbar-logo{height:32px;object-fit:contain}
+.user-av{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--green));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;text-decoration:none;color:#fff}
+.online-pill{display:flex;align-items:center;gap:5px;background:rgba(0,217,126,.08);border:1px solid rgba(0,217,126,.12);border-radius:20px;padding:5px 10px}
+.online-dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 5px var(--green)}
+.online-txt{font-size:11px;color:var(--green);font-weight:600}
+.bal-card{background:linear-gradient(140deg,#0e2280 0%,#1a3aff 45%,#0d3060 100%);border-radius:18px;padding:24px 20px;position:relative;overflow:hidden;margin-bottom:20px}
+.bal-card::before{content:'';position:absolute;width:260px;height:260px;background:rgba(255,255,255,.04);border-radius:50%;top:-80px;right:-60px}
+.bal-card::after{content:'';position:absolute;width:180px;height:180px;background:rgba(0,217,126,.06);border-radius:50%;bottom:-50px;left:10px}
+.bal-label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;opacity:.6;margin-bottom:7px}
+.bal-amount{font-size:38px;font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:3px}
+.bal-amount sup{font-size:18px;opacity:.7}
+.bal-eq{font-size:12px;opacity:.5;margin-bottom:20px}
+.bal-actions{display:flex;gap:8px;position:relative;z-index:1}
+.bal-btn{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:11px;padding:10px 6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:.2s;font-family:var(--font)}
+.bal-btn:hover{background:rgba(255,255,255,.18)}
+.bal-btn.gb{background:var(--green);border-color:var(--green);color:#000}
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sec-title{font-size:15px;font-weight:700}
+.sec-all{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600;text-decoration:none}
+.qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.qa{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;text-decoration:none}
+.qa-ico{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--card);overflow:hidden;transition:.2s}
+.qa:hover .qa-ico{transform:translateY(-3px);border-color:var(--blue);box-shadow:0 8px 20px rgba(26,58,255,.2)}
+.qa-ico img{width:100%;height:100%;object-fit:cover;border-radius:15px}
+.qa-ico.ico-c{font-size:22px;background:linear-gradient(135deg,#001a3a,#0a1540);border-color:rgba(26,58,255,.3)}
+.qa-lbl{font-size:10.5px;color:var(--muted);font-weight:500;text-align:center}
+.kyc-warn{background:rgba(245,197,24,.06);border:1px solid rgba(245,197,24,.15);border-radius:13px;padding:13px 16px;font-size:12.5px;color:var(--muted);margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <img class="topbar-logo" id="fp-logo" alt="FlexiPay">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="online-pill"><div class="online-dot"></div><span class="online-txt">En ligne</span></div>
+      <a class="user-av" href="/profile" id="avatar">KO</a>
+    </div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad">
+    <div id="kyc-warn" class="kyc-warn" style="display:none">⚠️ <span>Vérification KYC <strong>en cours</strong>. Disponible après validation (24-48h).</span></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:3px">Bonjour,</div>
+    <div style="font-size:23px;font-weight:800;margin-bottom:18px" id="username">…</div>
+
+    <div class="bal-card">
+      <div class="bal-label">Solde Total FlexiCard</div>
+      <div class="bal-amount"><sup>$</sup><span id="bal-usd">0.00</span></div>
+      <div class="bal-eq" id="bal-xaf">≈ 0 XAF · Actualisé</div>
+      <div class="bal-actions">
+        <button class="bal-btn" onclick="location.href='/recharge'">⬇ Recharger</button>
+        <button class="bal-btn gb" onclick="location.href='/convert'">💱 Convertir</button>
+        <button class="bal-btn" onclick="location.href='/card'">💳 Carte</button>
+      </div>
+    </div>
+
+    <div class="sec-hdr" style="margin-bottom:12px"><div class="sec-title">Taux de Change</div><div class="sec-all" id="refresh-rates" style="cursor:pointer">↺ Actualiser</div></div>
+    <div class="rates-scroll" id="rates-row" style="margin-bottom:22px">
+      <div class="rate-chip"><div class="rc-top"><span class="rc-flag">🇺🇸</span><span class="rc-badge up">live</span></div><div class="rc-name">USD</div><div class="rc-rate" id="r-usd">600 XAF</div></div>
+      <div class="rate-chip"><div class="rc-top"><span class="rc-flag">🇪🇺</span><span class="rc-badge up">live</span></div><div class="rc-name">EUR</div><div class="rc-rate" id="r-eur">655 XAF</div></div>
+      <div class="rate-chip"><div class="rc-top"><span class="rc-flag">🇬🇧</span><span class="rc-badge up">live</span></div><div class="rc-name">GBP</div><div class="rc-rate" id="r-gbp">762 XAF</div></div>
+      <div class="rate-chip"><div class="rc-top"><span class="rc-flag">🇨🇦</span><span class="rc-badge up">live</span></div><div class="rc-name">CAD</div><div class="rc-rate" id="r-cad">440 XAF</div></div>
+    </div>
+
+    <div class="sec-hdr"><div class="sec-title">Recharger via</div></div>
+    <div class="qa-grid" style="margin-bottom:22px">
+      <a href="/recharge?op=mtn" class="qa"><div class="qa-ico"><img id="mtn-logo" alt="MTN"></div><div class="qa-lbl">MTN MoMo</div></a>
+      <a href="/recharge?op=orange" class="qa"><div class="qa-ico"><img id="orange-logo" alt="Orange"></div><div class="qa-lbl">Orange Money</div></a>
+      <a href="/recharge?op=airtel" class="qa"><div class="qa-ico"><img id="airtel-logo" alt="Airtel" style="object-fit:contain;padding:4px"></div><div class="qa-lbl">Airtel Money</div></a>
+      <a href="/convert" class="qa"><div class="qa-ico ico-c">💱</div><div class="qa-lbl">Convertir</div></a>
+    </div>
+
+    <div class="sec-hdr"><div class="sec-title">Transactions récentes</div><a class="sec-all" href="/transactions">Tout voir</a></div>
+    <div id="txn-list"><div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">⏳ Chargement...</div></div>
+  </div>
+  </div>
+  <nav class="bnav">
+    <a href="/dashboard" class="bi on"><span class="bi-ico">🏠</span>Accueil</a>
+    <a href="/recharge" class="bi"><span class="bi-ico">⬇</span>Recharger</a>
+    <a href="/convert" class="bi"><span class="bi-ico">💱</span>Convertir</a>
+    <a href="/card" class="bi"><span class="bi-ico">💳</span>Carte</a>
+  </nav>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+document.getElementById('fp-logo').src     = ASSETS.FLEXIPAY;
+document.getElementById('mtn-logo').src    = ASSETS.MTN;
+document.getElementById('orange-logo').src = ASSETS.ORANGE;
+document.getElementById('airtel-logo').src = ASSETS.AIRTEL;
+
+async function init() {
+  const user = await requireAuth(); if (!user) return;
+  document.getElementById('username').textContent = user.first_name + ' ' + user.last_name + ' 👋';
+  document.getElementById('avatar').textContent = (user.first_name[0]||'')+(user.last_name[0]||'');
+  document.getElementById('bal-usd').textContent = Number(user.balance_usd||0).toFixed(2);
+  document.getElementById('bal-xaf').textContent = '≈ ' + Math.round((user.balance_usd||0)*600).toLocaleString('fr-FR') + ' XAF';
+  if (user.kyc_status === 'pending') document.getElementById('kyc-warn').style.display='flex';
+  loadRates();
+  loadTxns();
+}
+
+async function loadRates() {
+  try {
+    const data = await API.getRates();
+    if (!data.rates) return;
+    const map = {};
+    data.rates.forEach(r => { if(r.from_currency==='XAF') map[r.to_currency]=r; });
+    if(map.USD) document.getElementById('r-usd').textContent = Math.round(1/map.USD.rate) + ' XAF';
+    if(map.EUR) document.getElementById('r-eur').textContent = Math.round(1/map.EUR.rate) + ' XAF';
+    if(map.GBP) document.getElementById('r-gbp').textContent = Math.round(1/map.GBP.rate) + ' XAF';
+    if(map.CAD) document.getElementById('r-cad').textContent = Math.round(1/map.CAD.rate) + ' XAF';
+  } catch {}
+}
+document.getElementById('refresh-rates').onclick = () => { loadRates(); toast('↺ Taux actualisés'); };
+
+async function loadTxns() {
+  const el = document.getElementById('txn-list');
+  try {
+    const data = await API.getTransactions({ limit:5 });
+    const txns = data.transactions || [];
+    if (!txns.length) { el.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Aucune transaction</p>'; return; }
+    const icons={recharge:'⬇',conversion:'💱',card_payment:'💳',refund:'↩'};
+    el.innerHTML = txns.map(t => {
+      const cls = t.type==='card_payment'?'out':(t.status==='pending'?'pend':'in');
+      const sign = t.type==='card_payment'?'-':'+';
+      const c = COUNTRIES.find(x=>x.code===t.country_code)||{flag:'🌍'};
+      return `<div class="txn-item">
+        <div class="ti-ico ${cls}">${icons[t.type]||'💸'}</div>
+        <div class="ti-info">
+          <div class="ti-name">${t.type==='recharge'?'Recharge '+(OPS[t.operator]||''):t.type==='conversion'?'Conversion XAF → '+(t.target_currency||'USD'):'Paiement carte'}</div>
+          <div class="ti-date">${fmtDate(t.created_at)} ${c.flag}</div>
+        </div>
+        <div class="ti-amt ${cls}">${t.status==='pending'?'<span style="color:var(--muted)">En attente</span>':sign+fmtUSD(Math.abs(t.amount_usd||0))}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Erreur de chargement</p>'; }
+}
+init();
+</script>
+</body>
+</html>

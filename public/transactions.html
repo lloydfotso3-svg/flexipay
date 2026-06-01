@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Transactions</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.filter-bar{display:flex;gap:7px;padding:12px 20px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.fc{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:7px 15px;font-size:12px;cursor:pointer;font-family:var(--font);color:var(--text);transition:.2s}
+.fc.on{background:rgba(26,58,255,.15);border-color:var(--blue);color:var(--blue);font-weight:600}
+.txn-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:10px;cursor:pointer;transition:.2s}
+.txn-card:hover{border-color:rgba(26,58,255,.3)}
+.tc-top{display:flex;align-items:center;gap:13px;margin-bottom:10px}
+.tc-ref{font-size:11px;color:var(--muted)}
+.tc-details{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12px}
+.tc-fl{color:var(--muted)} .tc-fv{font-weight:600}
+.txn-summary{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center}
+.ts-val{font-size:18px;font-weight:800;margin-bottom:3px}
+.ts-val.gv{color:var(--green)} .ts-val.yv{color:var(--gold)}
+.ts-lbl{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/dashboard">←</a>
+    <span class="topbar-title">Mes Transactions</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+
+    <div style="padding:14px 20px 0">
+      <div class="txn-summary" id="txn-summary"></div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="fc on" onclick="filter('all',this)">Toutes</button>
+      <button class="fc" onclick="filter('recharge',this)">⬇ Recharges</button>
+      <button class="fc" onclick="filter('conversion',this)">💱 Conversions</button>
+      <button class="fc" onclick="filter('card_payment',this)">💳 Paiements</button>
+    </div>
+
+    <div style="padding:0 20px 100px" id="txn-list"></div>
+  </div>
+  <nav class="bnav">
+    <a href="/dashboard" class="bi"><span class="bi-ico">🏠</span>Accueil</a>
+    <a href="/recharge" class="bi"><span class="bi-ico">⬇</span>Recharger</a>
+    <a href="/convert" class="bi"><span class="bi-ico">💱</span>Convertir</a>
+    <a href="/card" class="bi"><span class="bi-ico">💳</span>Carte</a>
+  </nav>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+requireAuth();
+const user = DB.getCurrentUser();
+let allTxns = DB.getTransactions();
+// Show user's own + demo data
+if (user) {
+  const own = allTxns.filter(t => t.user_id === user.id);
+  allTxns = own.length ? own : allTxns.slice(0, 10);
+}
+
+// Summary
+const completed = allTxns.filter(t=>t.status==='completed');
+const totalIn   = completed.filter(t=>t.type!=='card_payment').reduce((s,t)=>s+(t.amount_usd||0),0);
+const totalOut  = completed.filter(t=>t.type==='card_payment').reduce((s,t)=>s+Math.abs(t.amount_usd||0),0);
+document.getElementById('txn-summary').innerHTML = `
+  <div><div class="ts-val gv">${fmtUSD(totalIn)}</div><div class="ts-lbl">Total reçu</div></div>
+  <div><div class="ts-val" style="color:#ff5050">${fmtUSD(totalOut)}</div><div class="ts-lbl">Total dépensé</div></div>
+  <div><div class="ts-val yv">${allTxns.length}</div><div class="ts-lbl">Transactions</div></div>
+`;
+
+const icons = { recharge:'⬇', conversion:'💱', card_payment:'🛒', refund:'↩' };
+const opNames = { mtn:'MTN MoMo', orange:'Orange Money', airtel:'Airtel Money' };
+const statusBadge = { completed:'<span class="badge badge-done">✅ Complétée</span>', pending:'<span class="badge badge-pend">⏳ En attente</span>', flagged:'<span class="badge badge-flag">🚨 Signalée</span>', failed:'<span class="badge badge-fail">❌ Échouée</span>' };
+const typeName = { recharge:'Recharge', conversion:'Conversion', card_payment:'Paiement carte', refund:'Remboursement' };
+
+function renderList(txns) {
+  const list = document.getElementById('txn-list');
+  if (!txns.length) { list.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:32px 0">Aucune transaction</p>'; return; }
+  list.innerHTML = txns.map(t => {
+    const cls = t.type==='card_payment'?'out':(t.status==='pending'?'pend':'in');
+    const sign = t.type==='card_payment'?'-':'+';
+    const amt = t.status==='pending' ? '<span style="color:var(--muted)">En attente</span>' : `<span class="ti-amt ${cls}">${sign}${fmtUSD(Math.abs(t.amount_usd||0))}</span>`;
+    const c = COUNTRIES.find(x=>x.code===t.country_code)||{flag:'🌍',name:t.country_code||'—'};
+    return `<div class="txn-card" onclick="toast('📋 Réf: ${t.ref}')">
+      <div class="tc-top">
+        <div class="ti-ico ${cls}" style="width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;${cls==='in'?'background:rgba(0,217,126,.09);border:1px solid rgba(0,217,126,.14)':cls==='out'?'background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.12)':'background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.12)'}">${icons[t.type]||'💸'}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px">${typeName[t.type]||t.type} ${t.operator?'· '+opNames[t.operator]:''}</div>
+          <div class="tc-ref">${t.ref} · ${fmtDate(t.created_at)}</div>
+        </div>
+        ${amt}
+      </div>
+      <div class="tc-details">
+        <div><div class="tc-fl">Pays</div><div class="tc-fv">${c.flag} ${c.name}</div></div>
+        <div><div class="tc-fl">Montant local</div><div class="tc-fv">${fmtXAF(t.amount_local||0)}</div></div>
+        <div><div class="tc-fl">Statut</div><div class="tc-fv">${statusBadge[t.status]||t.status}</div></div>
+        <div><div class="tc-fl">Frais</div><div class="tc-fv">${fmtXAF(t.fee||0)}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filter(type, el) {
+  document.querySelectorAll('.fc').forEach(f=>f.classList.remove('on'));
+  if(el) el.classList.add('on');
+  renderList(type==='all' ? allTxns : allTxns.filter(t=>t.type===type));
+}
+
+renderList(allTxns);
+</script>
+</body>
+</html>
+<script>
+(async function patchTxns(){
+  await requireAuth();
+  try {
+    const data = await API.getTransactions({limit:100});
+    allTxns = data.transactions||[];
+    const completed=allTxns.filter(t=>t.status==='completed');
+    const totalIn=completed.filter(t=>t.type!=='card_payment').reduce((s,t)=>s+(parseFloat(t.amount_usd)||0),0);
+    const totalOut=completed.filter(t=>t.type==='card_payment').reduce((s,t)=>s+Math.abs(parseFloat(t.amount_usd)||0),0);
+    document.getElementById('txn-summary').innerHTML=`
+      <div><div class="ts-val gv">${fmtUSD(totalIn)}</div><div class="ts-lbl">Total reçu</div></div>
+      <div><div class="ts-val" style="color:#ff5050">${fmtUSD(totalOut)}</div><div class="ts-lbl">Total dépensé</div></div>
+      <div><div class="ts-val yv">${allTxns.length}</div><div class="ts-lbl">Transactions</div></div>`;
+    renderList(allTxns);
+  } catch(e){ document.getElementById('txn-list').innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:24px">Erreur chargement</p>'; }
+})();
+</script>

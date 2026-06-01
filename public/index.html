@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Africa to Global</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.hero{display:flex;flex-direction:column;align-items:center;padding:52px 20px 28px;text-align:center}
+.hero img{height:76px;object-fit:contain;margin-bottom:14px}
+.hero-tag{font-size:13px;color:var(--muted);line-height:1.7}
+.hero-tag strong{color:var(--green)}
+.welcome-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px 20px;margin:0 20px 18px}
+.wc-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.wc-sub{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:22px}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 20px 20px}
+.feat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+.feat-ico{font-size:26px;margin-bottom:6px}
+.feat-title{font-size:12px;font-weight:700;margin-bottom:2px}
+.feat-sub{font-size:11px;color:var(--muted)}
+.footer-links{text-align:center;padding:10px 20px 40px;display:flex;justify-content:center;gap:20px}
+.footer-links a{font-size:12px;color:var(--muted);text-decoration:none}
+.footer-links a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="scroll">
+  <div class="hero">
+    <img id="fp-logo" alt="FlexiPay">
+    <div class="hero-tag">Convertis ton argent en Afrique,<br>Reçois-le sur ta <strong>carte virtuelle</strong></div>
+  </div>
+  <div class="welcome-card fade-up">
+    <div class="wc-title">Bienvenue sur FlexiPay 🌍</div>
+    <div class="wc-sub">La plateforme africaine qui convertit votre <strong style="color:var(--text)">Mobile Money</strong> en <strong style="color:var(--green)">USD, EUR, GBP</strong> et vous attribue une <strong style="color:var(--blue)">carte virtuelle Mastercard</strong>.</div>
+    <button class="btn btn-blue" style="margin-bottom:10px" onclick="location.href='/register'">🚀 Créer un compte gratuit</button>
+    <button class="btn btn-outline" onclick="location.href='/login'">🔐 Se connecter</button>
+  </div>
+  <div class="features fade-up">
+    <div class="feat"><div class="feat-ico">🌍</div><div class="feat-title">19 Pays</div><div class="feat-sub">Toute l'Afrique</div></div>
+    <div class="feat"><div class="feat-ico">💳</div><div class="feat-title">Carte Virtuelle</div><div class="feat-sub">Mastercard</div></div>
+    <div class="feat"><div class="feat-ico">🔒</div><div class="feat-title">KYC / AML</div><div class="feat-sub">Anti-fraude actif</div></div>
+    <div class="feat"><div class="feat-ico">⚡</div><div class="feat-title">&lt; 5 minutes</div><div class="feat-sub">Conversion rapide</div></div>
+  </div>
+  <div class="footer-links">
+    <a href="/admin">🔐 Admin</a>
+    <a href="/schema">📊 Schéma SQL</a>
+    <a href="/api/health">💚 API Status</a>
+  </div>
+</div>
+</div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+document.getElementById('fp-logo').src = ASSETS.FLEXIPAY;
+// Auto-redirect if already logged in
+getUser().then(u => { if(u) location.href='/dashboard'; });
+</script>
+</body>
+</html>

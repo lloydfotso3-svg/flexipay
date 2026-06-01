@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Recharger</title>
+<link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/dashboard">←</a>
+    <span class="topbar-title">Recharger</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad">
+    <div class="step-bar"><div class="sdot on"></div><div class="sdot"></div><div class="sdot"></div></div>
+    <div class="sec-h1">Mode de paiement</div>
+    <div class="sec-h2">Sélectionnez votre opérateur Mobile Money</div>
+
+    <div class="field">
+      <label class="fp-label">📍 Pays</label>
+      <div class="select-wrap"><span class="select-flag" id="rech-flag">🇨🇲</span>
+        <select class="fp-select" id="rech-country" style="padding-left:44px"></select>
+        <span class="select-arrow">▾</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="mc mtn-mc" id="mc-mtn" onclick="selOp('mtn')">
+        <div class="mc-logo"><img id="mtn-logo" alt="MTN"></div>
+        <div class="mc-info"><div class="mc-name">MTN Mobile Money</div><div class="mc-desc">CM, GH, CI, NG, UG, RW, ZA...</div></div>
+        <div class="mc-radio"></div>
+      </div>
+      <div class="mc org-mc" id="mc-orange" onclick="selOp('orange')">
+        <div class="mc-logo"><img id="orange-logo" alt="Orange"></div>
+        <div class="mc-info"><div class="mc-name">Orange Money</div><div class="mc-desc">CM, SN, CI, ML, BF, GN, TG...</div></div>
+        <div class="mc-radio"></div>
+      </div>
+      <div class="mc air-mc" id="mc-airtel" onclick="selOp('airtel')">
+        <div class="mc-logo" style="background:#b71c1c"><img id="airtel-logo" alt="Airtel" style="object-fit:contain;padding:4px"></div>
+        <div class="mc-info"><div class="mc-name">Airtel Money</div><div class="mc-desc">CD, CG, KE, TZ, UG, ZM, NG...</div></div>
+        <div class="mc-radio"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="fp-label">Numéro Mobile Money</label>
+      <div class="phone-row">
+        <select class="phone-code" id="rech-dial"><option>🇨🇲 +237</option></select>
+        <input class="phone-input" id="rech-phone" type="tel" placeholder="6XX XXX XXX">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fp-label">Montant (XAF)</label>
+      <input class="fp-input" id="rech-amt" type="number" placeholder="Ex: 25000" oninput="calcEquiv()">
+    </div>
+    <div class="presets">
+      <button class="preset" onclick="setAmt(5000)">5 000</button>
+      <button class="preset" onclick="setAmt(10000)">10 000</button>
+      <button class="preset" onclick="setAmt(25000)">25 000</button>
+      <button class="preset" onclick="setAmt(50000)">50 000</button>
+      <button class="preset" onclick="setAmt(100000)">100 000</button>
+    </div>
+    <div class="info-box" style="display:flex;justify-content:space-between;margin-bottom:18px">
+      <span>≈ <strong style="color:var(--green)" id="usd-equiv">$0.00 USD</strong></span>
+      <span style="color:var(--muted)">Frais: <strong style="color:var(--gold)" id="fee-disp">0 XAF</strong></span>
+    </div>
+    <div class="err-box" id="rech-err"></div>
+    <button class="btn btn-blue" id="rech-btn" onclick="goToCode()">Continuer →</button>
+  </div>
+  </div>
+  <nav class="bnav">
+    <a href="/dashboard" class="bi"><span class="bi-ico">🏠</span>Accueil</a>
+    <a href="/recharge" class="bi on"><span class="bi-ico">⬇</span>Recharger</a>
+    <a href="/convert" class="bi"><span class="bi-ico">💱</span>Convertir</a>
+    <a href="/card" class="bi"><span class="bi-ico">💳</span>Carte</a>
+  </nav>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+document.getElementById('mtn-logo').src    = ASSETS.MTN;
+document.getElementById('orange-logo').src = ASSETS.ORANGE;
+document.getElementById('airtel-logo').src = ASSETS.AIRTEL;
+
+requireAuth();
+populateCountrySelect(document.getElementById('rech-country'), document.getElementById('rech-flag'), document.getElementById('rech-dial'));
+
+const urlOp = new URLSearchParams(location.search).get('op');
+if (urlOp) setTimeout(() => selOp(urlOp), 100);
+let currentOp = urlOp || null;
+
+function selOp(op) {
+  currentOp=op;
+  ['mtn','orange','airtel'].forEach(x=>document.getElementById('mc-'+x).classList.remove('sel'));
+  document.getElementById('mc-'+op).classList.add('sel');
+  toast('✓ '+OPS[op]+' sélectionné');
+}
+function setAmt(v) {
+  document.getElementById('rech-amt').value=v;
+  document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('on',parseInt(b.textContent.replace(/\s/g,''))===v));
+  calcEquiv();
+}
+function calcEquiv() {
+  const a=parseFloat(document.getElementById('rech-amt').value)||0;
+  document.getElementById('usd-equiv').textContent='$'+(a/600).toFixed(2)+' USD';
+  document.getElementById('fee-disp').textContent=Math.round(a*.015).toLocaleString('fr-FR')+' XAF';
+}
+function showErr(msg){const e=document.getElementById('rech-err');e.textContent=msg;e.style.display='block';setTimeout(()=>e.style.display='none',4000);}
+
+async function goToCode() {
+  const phone=document.getElementById('rech-phone').value.trim();
+  const amt=parseFloat(document.getElementById('rech-amt').value);
+  const btn=document.getElementById('rech-btn');
+  if(!currentOp) return showErr('Choisissez un opérateur.');
+  if(!phone||phone.length<6) return showErr('Numéro invalide.');
+  if(!amt||amt<500) return showErr('Minimum 500 XAF.');
+  btn.textContent='⏳ Traitement...'; btn.disabled=true;
+  try {
+    const dialCode=document.querySelector('#rech-dial option').textContent.split(' ')[1]||'+237';
+    const countryCode=document.getElementById('rech-country').value;
+    const data = await API.recharge({
+      operator: currentOp,
+      amount_local: amt,
+      phone_number: dialCode+' '+phone,
+      country_code: countryCode
+    });
+    sessionStorage.setItem('fp_pending', JSON.stringify({ txn: data.transaction, code: data.code }));
+    location.href = '/code';
+  } catch(e) {
+    showErr(e.message||'Erreur serveur');
+    btn.textContent='Continuer →'; btn.disabled=false;
+  }
+}
+</script>
+</body>
+</html>

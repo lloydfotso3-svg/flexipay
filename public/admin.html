@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay Admin – Tableau de Bord</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+body{background:#050d1a}
+.adm-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(5,13,26,.95);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200}
+.adm-logo{display:flex;align-items:center;gap:10px}
+.adm-logo img{height:30px;object-fit:contain}
+.adm-badge{background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.2);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--gold);font-weight:700}
+.adm-user{font-size:12px;color:var(--muted)}
+.adm-logout{font-size:12px;color:#ff5050;cursor:pointer;text-decoration:none}
+/* LOGIN */
+.adm-login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 24px}
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+.stat.full{grid-column:1/-1}
+.stat-ico{font-size:22px;margin-bottom:7px}
+.stat-lbl{font-size:11px;color:var(--muted);margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:800}
+.stat-val.gv{color:var(--green)} .stat-val.yv{color:var(--gold)} .stat-val.rv{color:#ff5050}
+.stat-chg{font-size:11px;margin-top:3px}
+.stat-chg.up{color:var(--green)} .stat-chg.dn{color:#ff5050}
+/* COUNTRY BARS */
+.ctry-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ctry-item{background:rgba(255,255,255,.03);border-radius:10px;padding:10px}
+.ctry-nm{font-size:11px;color:var(--muted);margin-bottom:3px}
+.ctry-amt{font-weight:700;font-size:14px;margin-bottom:5px}
+.ctry-bar-bg{height:3px;background:rgba(255,255,255,.06);border-radius:2px}
+.ctry-bar{height:3px;border-radius:2px}
+/* FILTERS */
+.filter-bar{display:flex;gap:7px;padding:12px 14px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.fc{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:7px 15px;font-size:12px;cursor:pointer;font-family:var(--font);color:var(--text);transition:.2s}
+.fc.on{background:rgba(26,58,255,.15);border-color:var(--blue);color:var(--blue);font-weight:600}
+.search-wrap{padding:0 14px 4px;position:relative}
+.search-wrap input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px 10px 38px;color:var(--text);font-size:13px;font-family:var(--font)}
+.search-wrap input:focus{outline:none;border-color:var(--blue)}
+.search-ico{position:absolute;left:26px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
+/* TXN CARDS */
+.adm-txns{padding:0 14px 30px}
+.at{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:15px;margin-bottom:10px}
+.at-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.at-ref{font-size:13px;font-weight:700;color:#7aa2ff}
+.at-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12px}
+.at-fl{color:var(--muted)} .at-fv{font-weight:600;margin-bottom:1px}
+.at-actions{display:flex;gap:7px;margin-top:12px}
+.at-btn{flex:1;background:none;border:1px solid var(--border);border-radius:9px;padding:8px 6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);color:var(--text);transition:.2s}
+.at-btn.ok{border-color:rgba(0,217,126,.25);color:var(--green)}
+.at-btn.fl{border-color:rgba(255,80,80,.2);color:#ff5050}
+.at-btn:hover{background:rgba(255,255,255,.04)}
+/* USERS TABLE */
+.users-wrap{padding:0 14px 30px}
+.user-row{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.user-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--green));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.user-sub{font-size:11px;color:var(--muted)}
+.user-right{text-align:right}
+.user-bal{font-size:14px;font-weight:700;color:var(--green)}
+.user-date{font-size:10px;color:var(--muted)}
+/* TABS */
+.adm-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 14px;margin-bottom:0;overflow-x:auto;scrollbar-width:none}
+.adm-tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:.2s}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-content{display:none}
+.tab-content.on{display:block}
+/* FRAUD */
+.fraud-row{background:rgba(255,80,80,.05);border:1px solid rgba(255,80,80,.12);border-radius:14px;padding:14px;margin-bottom:8px}
+.fr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.fr-risk{font-size:12px;font-weight:700;color:#ff5050}
+.fr-body{font-size:12px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="page-wrap" id="admin-app" style="max-width:100%;background:#050d1a">
+
+  <!-- LOGIN WALL -->
+  <div id="adm-login-screen" style="min-height:100vh;display:flex;flex-direction:column">
+    <div style="padding:24px 20px 0;display:flex;align-items:center;gap:10px">
+      <img id="adm-logo-login" style="height:34px;object-fit:contain" alt="FlexiPay">
+      <span class="adm-badge">🔐 ADMIN</span>
+    </div>
+    <div class="adm-login">
+      <div class="sec-h1" style="margin-bottom:4px">Accès Administrateur</div>
+      <div class="sec-h2">Panneau de gestion FlexiPay · Réservé aux administrateurs autorisés.</div>
+      <div class="err-box" id="adm-err" style="margin-bottom:14px"></div>
+      <div class="field"><label class="fp-label">Email Admin</label>
+        <div class="input-wrap"><span class="input-ico">✉</span><input class="fp-input" id="adm-email" type="email" placeholder="admin@flexipay.africa"></div>
+      </div>
+      <div class="field"><label class="fp-label">Mot de passe</label>
+        <div class="input-wrap" style="position:relative"><span class="input-ico">🔒</span>
+          <input class="fp-input" id="adm-pass" type="password" placeholder="Mot de passe admin">
+          <button class="input-eye" onclick="togglePwd('adm-pass')">👁</button>
+        </div>
+      </div>
+      <button class="btn btn-blue" onclick="adminLogin()">🔐 Accéder au panneau</button>
+      <div class="warn-box" style="margin-top:14px;font-size:12px">💡 Démo: <strong style="color:var(--text)">admin@flexipay.africa</strong> · MDP: <strong style="color:var(--text)">admin2024</strong></div>
+      <div style="text-align:center;margin-top:14px"><a href="/dashboard" style="font-size:12px;color:var(--muted);text-decoration:none">← Retour à l'appli</a></div>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD (hidden until login) -->
+  <div id="adm-dashboard" style="display:none;min-height:100vh;flex-direction:column">
+    <div class="adm-topbar">
+      <div class="adm-logo"><img id="adm-logo" alt="FlexiPay"><span class="adm-badge">ADMIN</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="adm-user" id="adm-username">admin</span>
+        <a class="adm-logout" onclick="adminLogout()">Déconnexion</a>
+      </div>
+    </div>
+
+    <div class="scroll" style="flex:1">
+      <!-- KPIs -->
+      <div style="padding:14px 14px 0">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📊 Tableau de bord · Données en temps réel</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-ico">💸</div><div class="stat-lbl">Volume 24h</div><div class="stat-val gv" id="s-vol">$0</div><div class="stat-chg up" id="s-vol-chg">↑ calculé</div></div>
+        <div class="stat"><div class="stat-ico">👥</div><div class="stat-lbl">Utilisateurs</div><div class="stat-val" id="s-users">0</div><div class="stat-chg up" id="s-users-chg">total</div></div>
+        <div class="stat"><div class="stat-ico">⏳</div><div class="stat-lbl">En attente</div><div class="stat-val yv" id="s-pend">0</div><div class="stat-chg">transactions</div></div>
+        <div class="stat"><div class="stat-ico">🚨</div><div class="stat-lbl">Alertes fraude</div><div class="stat-val rv" id="s-fraud">0</div><div class="stat-chg dn">À vérifier</div></div>
+        <div class="stat full">
+          <div class="stat-ico">🌍</div><div class="stat-lbl">Volume par pays</div>
+          <div class="ctry-grid" id="ctry-grid"></div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="adm-tabs">
+        <div class="tab on" onclick="switchTab('transactions',this)">📋 Transactions</div>
+        <div class="tab" onclick="switchTab('users',this)">👥 Utilisateurs</div>
+        <div class="tab" onclick="switchTab('fraud',this)">🚨 Fraude/AML</div>
+        <div class="tab" onclick="switchTab('codes',this)">🔑 Codes actifs</div>
+      </div>
+
+      <!-- TRANSACTIONS TAB -->
+      <div class="tab-content on" id="tab-transactions">
+        <div class="filter-bar">
+          <button class="fc on" onclick="filterTxns('all',this)">Toutes</button>
+          <button class="fc" onclick="filterTxns('completed',this)">✅ Complétées</button>
+          <button class="fc" onclick="filterTxns('pending',this)">⏳ En attente</button>
+          <button class="fc" onclick="filterTxns('flagged',this)">🚨 Signalées</button>
+        </div>
+        <div class="search-wrap"><span class="search-ico">🔍</span><input id="txn-search" placeholder="Rechercher référence, nom, téléphone..." oninput="filterTxns('all',null)"></div>
+        <div class="adm-txns" id="txn-list" style="margin-top:10px"></div>
+      </div>
+
+      <!-- USERS TAB -->
+      <div class="tab-content" id="tab-users">
+        <div style="padding:12px 14px 6px"><div class="search-wrap" style="padding:0;position:relative"><span class="search-ico" style="left:12px">🔍</span><input id="user-search" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px 10px 38px;color:var(--text);font-size:13px;font-family:var(--font)" placeholder="Rechercher un utilisateur..." oninput="renderUsers()"></div></div>
+        <div class="users-wrap" id="users-list" style="margin-top:8px"></div>
+      </div>
+
+      <!-- FRAUD TAB -->
+      <div class="tab-content" id="tab-fraud">
+        <div style="padding:14px 14px 6px"><div class="info-box" style="font-size:12px">🛡️ Système AML actif · Détection automatique des transactions suspectes (montant inhabituels, nouveaux pays, fréquence élevée)</div></div>
+        <div style="padding:0 14px 30px" id="fraud-list"></div>
+      </div>
+
+      <!-- CODES TAB -->
+      <div class="tab-content" id="tab-codes">
+        <div style="padding:14px 14px 6px"><div class="warn-box" style="font-size:12px">⏳ Codes actifs — suppression automatique après 24h (pg_cron / scheduled task)</div></div>
+        <div style="padding:0 14px 30px" id="codes-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+// Demo admin credentials
+const ADMINS = [{ email:'admin@flexipay.africa', password:'admin2024', name:'Super Admin' }];
+let currentFilter = 'all';
+
+document.getElementById('adm-logo-login').src = ASSETS.FLEXIPAY;
+
+function adminLogin() {
+  const email = document.getElementById('adm-email').value.trim();
+  const pass  = document.getElementById('adm-pass').value;
+  const err   = document.getElementById('adm-err');
+  const admin = ADMINS.find(a => a.email===email && a.password===pass);
+  if (!admin) { err.textContent='Identifiants incorrects.'; err.style.display='block'; return; }
+  sessionStorage.setItem('fp_admin', JSON.stringify(admin));
+  showAdminDashboard(admin);
+}
+document.getElementById('adm-pass').addEventListener('keydown', e => { if(e.key==='Enter') adminLogin(); });
+
+function adminLogout() {
+  sessionStorage.removeItem('fp_admin');
+  document.getElementById('adm-dashboard').style.display = 'none';
+  document.getElementById('adm-login-screen').style.display = 'flex';
+}
+
+function showAdminDashboard(admin) {
+  document.getElementById('adm-login-screen').style.display = 'none';
+  document.getElementById('adm-dashboard').style.display = 'flex';
+  document.getElementById('adm-logo').src = ASSETS.FLEXIPAY;
+  document.getElementById('adm-username').textContent = admin.name;
+  loadDashboard();
+}
+
+function loadDashboard() {
+  const txns  = DB.getTransactions();
+  const users = DB.getUsers();
+  const fraud = DB.getFraudLogs();
+  const codes = DB.getCodes().filter(c => !c.is_used && new Date(c.expires_at) > new Date());
+
+  // KPIs
+  const vol = txns.filter(t=>t.status==='completed').reduce((s,t)=>s+(t.amount_usd||0),0);
+  const pending = txns.filter(t=>t.status==='pending').length;
+  document.getElementById('s-vol').textContent       = fmtUSD(vol);
+  document.getElementById('s-vol-chg').textContent   = '↑ ' + txns.filter(t=>t.status==='completed').length + ' complétées';
+  document.getElementById('s-users').textContent     = users.length;
+  document.getElementById('s-users-chg').textContent = users.length + ' enregistrés';
+  document.getElementById('s-pend').textContent      = pending;
+  document.getElementById('s-fraud').textContent     = fraud.length;
+
+  // Country breakdown
+  const countryCounts = {};
+  txns.forEach(t => { if(t.country_code) countryCounts[t.country_code]=(countryCounts[t.country_code]||0)+(t.amount_usd||0); });
+  const sorted = Object.entries(countryCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max = sorted[0]?.[1] || 1;
+  const colors = ['var(--blue)','var(--orange-op)','var(--green)','var(--airtel)','var(--mtn)','#8b5cf6'];
+  document.getElementById('ctry-grid').innerHTML = sorted.map(([code,amt],i) => {
+    const c = COUNTRIES.find(x=>x.code===code) || {flag:'🌍',name:code};
+    return `<div class="ctry-item">
+      <div class="ctry-nm">${c.flag} ${c.name}</div>
+      <div class="ctry-amt">${fmtUSD(amt)}</div>
+      <div class="ctry-bar-bg"><div class="ctry-bar" style="width:${Math.round(amt/max*100)}%;background:${colors[i]}"></div></div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:12px;grid-column:1/-1">Aucune donnée</div>';
+
+  renderTxns(txns, 'all');
+  renderUsers(users);
+  renderFraud(fraud);
+  renderCodes(codes, txns);
+}
+
+function renderTxns(txns, filter) {
+  const search = (document.getElementById('txn-search')?.value||'').toLowerCase();
+  let list = filter==='all' ? txns : txns.filter(t=>t.status===filter);
+  if (search) list = list.filter(t =>
+    (t.ref||'').toLowerCase().includes(search) ||
+    (t.user_name||'').toLowerCase().includes(search) ||
+    (t.phone_number||'').toLowerCase().includes(search)
+  );
+  const labels = { completed:'✅ Complétée', pending:'⏳ En attente', flagged:'🚨 Signalée', failed:'❌ Échouée' };
+  const badgeCls = { completed:'badge-done', pending:'badge-pend', flagged:'badge-flag', failed:'badge-fail' };
+  document.getElementById('txn-list').innerHTML = list.length ? list.map(t => {
+    const c = COUNTRIES.find(x=>x.code===t.country_code)||{flag:'🌍',name:t.country_code||'—'};
+    return `<div class="at" id="at-${t.id}">
+      <div class="at-top">
+        <span class="at-ref">${t.ref}</span>
+        <span class="badge ${badgeCls[t.status]||'badge-pend'}">${labels[t.status]||t.status}</span>
+      </div>
+      <div class="at-grid">
+        <div><div class="at-fl">Utilisateur</div><div class="at-fv">${t.user_name||'—'}</div></div>
+        <div><div class="at-fl">Téléphone</div><div class="at-fv">${t.phone_number||'—'}</div></div>
+        <div><div class="at-fl">Pays</div><div class="at-fv">${c.flag} ${c.name}</div></div>
+        <div><div class="at-fl">Opérateur</div><div class="at-fv">${OPS[t.operator]||t.type||'—'}</div></div>
+        <div><div class="at-fl">Montant</div><div class="at-fv">${fmtXAF(t.amount_local||0)}</div></div>
+        <div><div class="at-fl">USD</div><div class="at-fv" style="color:var(--green)">${fmtUSD(t.amount_usd||0)}</div></div>
+        <div><div class="at-fl">Date</div><div class="at-fv">${fmtDate(t.created_at)}</div></div>
+        <div><div class="at-fl">Frais</div><div class="at-fv">${fmtXAF(t.fee||0)}</div></div>
+      </div>
+      <div class="at-actions">
+        ${t.status!=='completed'?`<button class="at-btn ok" onclick="approveTxn('${t.id}')">✅ Approuver</button>`:''}
+        ${t.status!=='flagged'?`<button class="at-btn fl" onclick="flagTxn('${t.id}')">🚨 Signaler</button>`:''}
+        <button class="at-btn" onclick="toast('📋 Ref copiée: ${t.ref}')">📋 Copier</button>
+      </div>
+    </div>`;
+  }).join('') : '<p style="text-align:center;color:var(--muted);font-size:13px;padding:24px">Aucune transaction trouvée</p>';
+}
+
+function filterTxns(filter, el) {
+  currentFilter = filter;
+  if (el) { document.querySelectorAll('.fc').forEach(f=>f.classList.remove('on')); el.classList.add('on'); }
+  renderTxns(DB.getTransactions(), filter);
+}
+
+function renderUsers(overrideList) {
+  const search = (document.getElementById('user-search')?.value||'').toLowerCase();
+  let list = overrideList || DB.getUsers();
+  if (search) list = list.filter(u => (u.first_name+' '+u.last_name).toLowerCase().includes(search) || (u.email||'').includes(search));
+  const kycBadge = { verified:'<span class="badge badge-done">✅ KYC Vérifié</span>', pending:'<span class="badge badge-pend">⏳ KYC Pending</span>', rejected:'<span class="badge badge-fail">❌ KYC Rejeté</span>' };
+  document.getElementById('users-list').innerHTML = list.length ? list.map(u =>
+    `<div class="user-row">
+      <div class="user-av">${(u.first_name?.[0]||'?')+(u.last_name?.[0]||'')}</div>
+      <div class="user-info">
+        <div class="user-name">${u.first_name} ${u.last_name}</div>
+        <div class="user-sub">${u.email} · ${u.phone||'—'}</div>
+        <div style="margin-top:4px">${kycBadge[u.kyc_status]||''}</div>
+      </div>
+      <div class="user-right">
+        <div class="user-bal">${fmtUSD(u.balance_usd||0)}</div>
+        <div class="user-date">${fmtDate(u.created_at)}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">
+          <button class="at-btn ok" style="padding:5px 10px;font-size:10px" onclick="approveKYC('${u.id}')">✅ KYC</button>
+          <button class="at-btn fl" style="padding:5px 10px;font-size:10px" onclick="suspendUser('${u.id}')">🚫</button>
+        </div>
+      </div>
+    </div>`
+  ).join('') : '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Aucun utilisateur</p>';
+}
+
+function renderFraud(logs) {
+  document.getElementById('fraud-list').innerHTML = logs.length ? logs.map(l =>
+    `<div class="fraud-row">
+      <div class="fr-top">
+        <span class="at-ref">${l.txn_id||l.id}</span>
+        <span class="fr-risk">⚠ Score: ${l.risk_score||0}/100</span>
+      </div>
+      <div class="fr-body">
+        <strong>Motif:</strong> ${l.flag_reason||'—'}<br>
+        <strong>Utilisateur:</strong> ${l.user_id||'—'} · <strong>Date:</strong> ${fmtDate(l.created_at)}<br>
+        <strong>Action:</strong> ${l.action_taken||'En attente'}
+      </div>
+      <div class="at-actions" style="margin-top:10px">
+        <button class="at-btn ok" onclick="resolveFraud('${l.id}','approved')">✅ Approuver</button>
+        <button class="at-btn fl" onclick="resolveFraud('${l.id}','blocked')">🚫 Bloquer</button>
+      </div>
+    </div>`
+  ).join('') : '<div style="padding:20px 0"><div class="info-box" style="text-align:center;font-size:13px">🛡️ Aucune alerte fraude active</div></div>';
+}
+
+function renderCodes(codes, txns) {
+  document.getElementById('codes-list').innerHTML = codes.length ? codes.map(c => {
+    const txn = txns.find(t=>t.id===c.txn_id)||{};
+    return `<div class="at">
+      <div class="at-top">
+        <span class="at-ref">Code: ${c.code}</span>
+        <span class="badge badge-pend">⏳ Actif</span>
+      </div>
+      <div class="at-grid">
+        <div><div class="at-fl">Transaction</div><div class="at-fv">${txn.ref||c.txn_id}</div></div>
+        <div><div class="at-fl">Utilisateur</div><div class="at-fv">${txn.user_name||'—'}</div></div>
+        <div><div class="at-fl">Montant</div><div class="at-fv gv" style="color:var(--green)">${fmtUSD(txn.amount_usd||0)}</div></div>
+        <div><div class="at-fl">Expire</div><div class="at-fv">${fmtDate(c.expires_at)}</div></div>
+      </div>
+      <div class="at-actions"><button class="at-btn fl" onclick="invalidateCode('${c.id}')">🗑 Invalider</button></div>
+    </div>`;
+  }).join('') : '<div style="padding:20px 0"><div class="info-box" style="text-align:center;font-size:13px">✅ Aucun code actif en ce moment</div></div>';
+}
+
+// Actions
+function approveTxn(id) {
+  DB.updateTransaction(id, { status:'completed', completed_at:new Date().toISOString() });
+  toast('✅ Transaction approuvée'); loadDashboard();
+}
+function flagTxn(id) {
+  const txn = DB.getTransactions().find(t=>t.id===id);
+  DB.updateTransaction(id, { status:'flagged' });
+  if (txn) DB.addFraudLog({ user_id:txn.user_id, txn_id:id, risk_score:65, flag_reason:'Signalé manuellement par admin', action_taken:'none' });
+  toast('🚨 Transaction signalée'); loadDashboard();
+}
+function approveKYC(uid) { DB.updateUser(uid,{kyc_status:'verified'}); toast('✅ KYC approuvé'); renderUsers(); }
+function suspendUser(uid) { DB.updateUser(uid,{is_active:false}); toast('🚫 Utilisateur suspendu'); renderUsers(); }
+function resolveFraud(id, action) { toast(action==='approved'?'✅ Transaction approuvée':'🚫 Utilisateur bloqué'); loadDashboard(); }
+function invalidateCode(id) {
+  const codes = DB.getCodes();
+  const i = codes.findIndex(c=>c.id===id);
+  if (i>-1) { codes[i].is_used=true; DB.saveCodes(codes); }
+  toast('🗑 Code invalidé'); loadDashboard();
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
+}
+
+// Auto-login if session exists
+const saved = JSON.parse(sessionStorage.getItem('fp_admin')||'null');
+if (saved) showAdminDashboard(saved);
+</script>
+</body>
+</html>
+<script>
+// Override admin login with real API
+async function adminLogin(){
+  const email=document.getElementById('adm-email').value.trim();
+  const pass=document.getElementById('adm-pass').value;
+  const err=document.getElementById('adm-err');
+  err.style.display='none';
+  try {
+    const data=await API.adminLogin(email,pass);
+    sessionStorage.setItem('fp_admin',JSON.stringify(data.admin));
+    showAdminDashboard(data.admin);
+  } catch(e) {
+    err.textContent=e.message||'Identifiants incorrects';
+    err.style.display='block';
+  }
+}
+async function adminLogout(){
+  await API.adminLogout();
+  sessionStorage.removeItem('fp_admin');
+  document.getElementById('adm-dashboard').style.display='none';
+  document.getElementById('adm-login-screen').style.display='flex';
+}
+
+// Override loadDashboard with real API
+async function loadDashboard(){
+  try {
+    const [statsData, txnData, userResp, fraudData, codesData] = await Promise.all([
+      API.adminStats(), API.adminTransactions({limit:50}),
+      API.adminUsers({limit:50}), API.adminFraud(), API.adminCodes()
+    ]);
+    const s=statsData.stats;
+    document.getElementById('s-vol').textContent=fmtUSD(s.vol_24h||0);
+    document.getElementById('s-vol-chg').textContent='↑ total: '+fmtUSD(s.total_vol||0);
+    document.getElementById('s-users').textContent=s.total_users||0;
+    document.getElementById('s-users-chg').textContent='enregistrés';
+    document.getElementById('s-pend').textContent=s.pending_txns||0;
+    document.getElementById('s-fraud').textContent=s.fraud_alerts||0;
+
+    const colors=['var(--blue)','var(--orange-op)','var(--green)','var(--airtel)','var(--mtn)','#8b5cf6'];
+    const ctry=statsData.country_stats||[];
+    const max=ctry[0]?.volume||1;
+    document.getElementById('ctry-grid').innerHTML=ctry.map((c,i)=>{
+      const co=COUNTRIES.find(x=>x.code===c.country_code)||{flag:'🌍',name:c.country_code||'—'};
+      return `<div class="ctry-item"><div class="ctry-nm">${co.flag} ${co.name}</div><div class="ctry-amt">${fmtUSD(c.volume)}</div><div class="ctry-bar-bg"><div class="ctry-bar" style="width:${Math.round(c.volume/max*100)}%;background:${colors[i]}"></div></div></div>`;
+    }).join('')||'<div style="color:var(--muted);font-size:12px;grid-column:1/-1">Aucune donnée</div>';
+
+    renderTxns(txnData.transactions||[]);
+    renderUsers(userResp.users||[]);
+    renderFraud(fraudData.logs||[]);
+    renderCodes(codesData.codes||[]);
+  } catch(e){toast('Erreur chargement données','err');}
+}
+
+// Override approve/flag with real API
+async function approveTxn(id){
+  try{await API.adminUpdateTxn(id,'completed');toast('✅ Transaction approuvée');loadDashboard();}
+  catch(e){toast(e.message,'err');}
+}
+async function flagTxn(id){
+  try{await API.adminUpdateTxn(id,'flagged');toast('🚨 Transaction signalée');loadDashboard();}
+  catch(e){toast(e.message,'err');}
+}
+async function approveKYC(uid){
+  try{await API.adminUpdateUser(uid,{kyc_status:'verified'});toast('✅ KYC approuvé');loadDashboard();}
+  catch(e){toast(e.message,'err');}
+}
+async function suspendUser(uid){
+  try{await API.adminUpdateUser(uid,{is_active:0});toast('🚫 Utilisateur suspendu');loadDashboard();}
+  catch(e){toast(e.message,'err');}
+}
+async function invalidateCode(id){
+  try{await API.adminDeleteCode(id);toast('🗑 Code invalidé');loadDashboard();}
+  catch(e){toast(e.message,'err');}
+}
+async function resolveFraud(id,action){
+  try{await API.adminUpdateFraud(id,action);toast(action==='approved'?'✅ Approuvé':'🚫 Bloqué');loadDashboard();}
+  catch(e){toast(e.message,'err');}
+}
+// Re-run check with updated functions
+const saved2=JSON.parse(sessionStorage.getItem('fp_admin')||'null');
+if(saved2){document.getElementById('adm-logo').src=ASSETS.FLEXIPAY;showAdminDashboard(saved2);}
+</script>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>FlexiPay – Convertir</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+.curr-tabs{display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.curr-tabs::-webkit-scrollbar{display:none}
+.ctab{flex-shrink:0;background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:10px 14px;text-align:center;cursor:pointer;transition:.2s;min-width:70px}
+.ctab.on{border-color:var(--blue);background:rgba(26,58,255,.1)}
+.ctab-flag{font-size:18px;margin-bottom:3px}
+.ctab-code{font-size:11px;font-weight:700}
+.ctab-rate{font-size:10px;color:var(--muted)}
+.conv-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:8px}
+.conv-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px;font-weight:600}
+.conv-row{display:flex;align-items:center;justify-content:space-between}
+.conv-curr{display:flex;align-items:center;gap:10px}
+.conv-flag{font-size:26px}
+.conv-code{font-size:17px;font-weight:700}
+.conv-name{font-size:11px;color:var(--muted)}
+.conv-input{font-size:28px;font-weight:800;background:none;border:none;color:var(--text);text-align:right;width:150px;font-family:var(--font)}
+.conv-input:focus{outline:none}
+.conv-arrow{display:flex;justify-content:center;margin:2px 0}
+.ca-btn{width:42px;height:42px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:.3s;border:none;color:#fff}
+.ca-btn:hover{background:var(--blue2);transform:rotate(180deg)}
+.rate-row{background:rgba(0,217,126,.05);border:1px solid rgba(0,217,126,.1);border-radius:11px;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;margin:6px 0 18px}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="topbar">
+    <a class="back-btn" href="/dashboard">←</a>
+    <span class="topbar-title">Convertir</span>
+    <div class="w38"></div>
+  </div>
+  <div class="scroll">
+  <div class="body-pad">
+    <div class="sec-h1">Convertir vos devises</div>
+    <div class="sec-h2">XAF → USD, EUR, GBP, CAD — crédité instantanément sur votre FlexiCard.</div>
+    <div class="curr-tabs" id="curr-tabs"></div>
+
+    <div class="conv-card">
+      <div class="conv-lbl">Vous envoyez</div>
+      <div class="conv-row">
+        <div class="conv-curr"><div class="conv-flag">🏦</div><div><div class="conv-code">XAF</div><div class="conv-name">Franc CFA</div></div></div>
+        <input class="conv-input" id="xaf-in" type="number" value="50000" oninput="doConv()">
+      </div>
+    </div>
+    <div class="conv-arrow"><button class="ca-btn" onclick="toast('↔ Mode inversé')">⇅</button></div>
+    <div class="conv-card">
+      <div class="conv-lbl">Vous recevez</div>
+      <div class="conv-row">
+        <div class="conv-curr"><div class="conv-flag" id="cv-flag">🇺🇸</div><div><div class="conv-code" id="cv-code">USD</div><div class="conv-name" id="cv-name">Dollar américain</div></div></div>
+        <input class="conv-input" id="fgn-out" type="number" value="83.33" oninput="doConvR()" style="color:var(--green)">
+      </div>
+    </div>
+    <div class="rate-row">
+      <span style="font-size:12px;color:var(--muted)">Taux actuel</span>
+      <span style="font-size:12px;font-weight:700;color:var(--green)" id="rate-display">1 USD = 600 XAF</span>
+    </div>
+
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:22px">💳</span>
+        <div><div style="font-size:14px;font-weight:600" id="card-num">FlexiCard •••• ––––</div><div style="font-size:11px;color:var(--muted)">Solde: <span id="card-bal">$0.00</span></div></div>
+      </div>
+      <div style="width:44px;height:24px;background:var(--blue);border-radius:12px;position:relative">
+        <div style="position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;right:3px"></div>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:18px">
+      <div class="kv-table">
+        <div class="kv-row"><span class="kv-k">Montant envoyé</span><span class="kv-v" id="sum-xaf">—</span></div>
+        <div class="kv-row"><span class="kv-k">Montant reçu</span><span class="kv-v gv" id="sum-fgn">—</span></div>
+        <div class="kv-row"><span class="kv-k">Frais (1%)</span><span class="kv-v" id="sum-fee">—</span></div>
+        <div class="kv-row"><span class="kv-k">Net crédité</span><span class="kv-v gv" id="sum-net">—</span></div>
+      </div>
+    </div>
+
+    <div class="err-box" id="conv-err"></div>
+    <button class="btn btn-green" id="conv-btn" onclick="doConvert()">💱 Convertir Maintenant</button>
+  </div>
+  </div>
+  <nav class="bnav">
+    <a href="/dashboard" class="bi"><span class="bi-ico">🏠</span>Accueil</a>
+    <a href="/recharge" class="bi"><span class="bi-ico">⬇</span>Recharger</a>
+    <a href="/convert" class="bi on"><span class="bi-ico">💱</span>Convertir</a>
+    <a href="/card" class="bi"><span class="bi-ico">💳</span>Carte</a>
+  </nav>
+</div>
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-ico" id="m-ico">💱</div>
+    <div class="modal-h1" id="m-h1">Conversion réussie!</div>
+    <div class="modal-h2" id="m-h2"></div>
+    <button class="btn btn-blue" onclick="location.href='/dashboard'">Retour à l'accueil</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/js/assets.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script>
+let selCurrKey='usd', liveRates={};
+
+const tabs=document.getElementById('curr-tabs');
+tabs.innerHTML=Object.entries(RATES_STATIC).map(([k,r])=>
+  `<div class="ctab ${k==='usd'?'on':''}" id="ct-${k}" onclick="selCurr('${k}')">
+    <div class="ctab-flag">${r.f}</div><div class="ctab-code">${r.c}</div>
+    <div class="ctab-rate" id="cr-${k}">${r.r} F</div>
+  </div>`).join('');
+
+async function init() {
+  const user = await requireAuth(); if(!user) return;
+  document.getElementById('card-num').textContent = 'FlexiCard '+(user.card_number||'•••• ––––');
+  document.getElementById('card-bal').textContent = fmtUSD(user.balance_usd||0);
+  try {
+    const data = await API.getRates();
+    data.rates?.forEach(r => {
+      if(r.from_currency==='XAF') {
+        const k=r.to_currency.toLowerCase();
+        liveRates[k]=Math.round(1/r.rate);
+        const el=document.getElementById('cr-'+k);
+        if(el) el.textContent=liveRates[k]+' F';
+        if(RATES_STATIC[k]) RATES_STATIC[k].r=liveRates[k];
+      }
+    });
+  } catch{}
+  doConv();
+}
+
+function selCurr(k) {
+  selCurrKey=k;
+  document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('ct-'+k).classList.add('on');
+  const r=RATES_STATIC[k];
+  document.getElementById('cv-flag').textContent=r.f;
+  document.getElementById('cv-code').textContent=r.c;
+  document.getElementById('cv-name').textContent=r.n;
+  document.getElementById('rate-display').textContent='1 '+r.c+' = '+r.r+' XAF';
+  doConv();
+}
+function doConv() {
+  const xaf=parseFloat(document.getElementById('xaf-in').value)||0;
+  const r=RATES_STATIC[selCurrKey];
+  const fgn=(xaf/r.r).toFixed(2);
+  document.getElementById('fgn-out').value=fgn;
+  updateSummary(xaf,parseFloat(fgn));
+}
+function doConvR() {
+  const fgn=parseFloat(document.getElementById('fgn-out').value)||0;
+  const xaf=Math.round(fgn*RATES_STATIC[selCurrKey].r);
+  document.getElementById('xaf-in').value=xaf;
+  updateSummary(xaf,fgn);
+}
+function updateSummary(xaf,fgn) {
+  const fee=(fgn*.01).toFixed(2), net=(fgn-parseFloat(fee)).toFixed(2), r=RATES_STATIC[selCurrKey];
+  document.getElementById('sum-xaf').textContent=fmtXAF(xaf);
+  document.getElementById('sum-fgn').textContent=r.s+fgn;
+  document.getElementById('sum-fee').textContent=r.s+fee;
+  document.getElementById('sum-net').textContent=r.s+net;
+}
+
+async function doConvert() {
+  const xaf=parseFloat(document.getElementById('xaf-in').value);
+  const err=document.getElementById('conv-err');
+  const btn=document.getElementById('conv-btn');
+  if(!xaf||xaf<1000){err.textContent='Minimum 1 000 XAF.';err.style.display='block';setTimeout(()=>err.style.display='none',3000);return;}
+  btn.textContent='⏳ Conversion...';btn.disabled=true;
+  try {
+    const r=RATES_STATIC[selCurrKey];
+    const data=await API.convert({amount_xaf:xaf, target_currency:r.c});
+    document.getElementById('card-bal').textContent=fmtUSD(data.new_balance_usd);
+    document.getElementById('m-h2').textContent=`${fmtXAF(xaf)} → ${r.s}${data.amount_converted} ${r.c} crédités sur votre FlexiCard. Nouveau solde: ${fmtUSD(data.new_balance_usd)}`;
+    document.getElementById('modal-bg').classList.add('on');
+  } catch(e) { err.textContent=e.message||'Erreur serveur';err.style.display='block';setTimeout(()=>err.style.display='none',3000); }
+  btn.textContent='💱 Convertir Maintenant';btn.disabled=false;
+}
+init();
+doConv();
+</script>
+</body>
+</html>

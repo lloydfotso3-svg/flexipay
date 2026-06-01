@@ -29,16 +29,20 @@ app.use('/api/user',         require('./routes/user'));
 
 // ── Health check ───────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
+  const health = { ok: true, status: 'FlexiPay running', time: new Date() };
   try {
     const db = require('./config/db');
     await db.query('SELECT 1');
     const [users] = await db.query('SELECT COUNT(*) as c FROM users');
     const [txns]  = await db.query('SELECT COUNT(*) as c FROM transactions');
-    res.json({ ok: true, status: 'FlexiPay running', db: 'connected',
-      users: users[0].c, transactions: txns[0].c, time: new Date() });
+    health.db = 'connected';
+    health.users = users[0].c;
+    health.transactions = txns[0].c;
   } catch (e) {
-    res.status(500).json({ ok: false, db: 'disconnected', error: e.message });
+    health.db = 'disconnected';
+    health.dbError = e.message;
   }
+  res.json(health);
 });
 
 // ── Static files ───────────────────────────────────────────────

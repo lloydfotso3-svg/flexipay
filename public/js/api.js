@@ -1,19 +1,34 @@
 // ============================================================
-//  FlexiPay Frontend – API Client (talks to real server)
+//  FlexiPay Frontend – API Client
 // ============================================================
-const BASE = '';  // same origin
+const BASE = '';
 
 const API = {
+  // Store token locally as fallback when cookies are blocked (e.g. Railway HTTPS)
+  _token: localStorage.getItem('fp_token') || null,
+
+  _saveToken(t) {
+    if (t) { this._token = t; localStorage.setItem('fp_token', t); }
+  },
+  _clearToken() {
+    this._token = null;
+    localStorage.removeItem('fp_token');
+  },
+
   async call(method, path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this._token) headers['Authorization'] = 'Bearer ' + this._token;
     try {
       const res = await fetch(BASE + '/api' + path, {
         method,
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: body ? JSON.stringify(body) : undefined
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur réseau');
+      // Save token from response if present
+      if (data.token) this._saveToken(data.token);
       return data;
     } catch (err) {
       throw err;
@@ -27,10 +42,10 @@ const API = {
   // ── Auth ──────────────────────────────────────────────────
   login(email, password)    { return this.post('/auth/login', { email, password }); },
   register(data)            { return this.post('/auth/register', data); },
-  logout()                  { return this.post('/auth/logout'); },
+  logout()                  { this._clearToken(); return this.post('/auth/logout'); },
   me()                      { return this.get('/auth/me'); },
   adminLogin(e,p)           { return this.post('/auth/admin/login', { email:e, password:p }); },
-  adminLogout()             { return this.post('/auth/admin/logout'); },
+  adminLogout()             { this._clearToken(); return this.post('/auth/admin/logout'); },
 
   // ── Transactions ──────────────────────────────────────────
   recharge(data)            { return this.post('/transactions/recharge', data); },

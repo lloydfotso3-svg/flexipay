@@ -55,9 +55,20 @@ router.patch('/transactions/:id', async (req, res) => {
     await db.query('UPDATE transactions SET status=?, completed_at=? WHERE id=?',
       [status, status==='completed'?new Date():null, req.params.id]);
 
-    if (status === 'completed' && txn.status === 'pending' && txn.type === 'recharge') {
-      await db.query('UPDATE users SET balance_usd = balance_usd + ? WHERE id=?', [txn.amount_usd, txn.user_id]);
-      await db.query('UPDATE payment_codes SET is_used=1, used_at=NOW() WHERE transaction_id=?', [req.params.id]);
+    if (status === 'completed' && txn.status === 'pending') {
+      if (txn.type === 'recharge') {
+        // Credit user balance
+        await db.query('UPDATE users SET balance_usd = balance_usd + ? WHERE id=?', [txn.amount_usd, txn.user_id]);
+        await db.query('UPDATE payment_codes SET is_used=1, used_at=NOW() WHERE transaction_id=?', [req.params.id]);
+      } else if (txn.type === 'withdrawal') {
+        // Debit user balance — admin has sent the money via Mobile Money
+        const [userRow] = await db.query('SELECT balance_usd FROM users WHERE id=?', [txn.user_id]);
+        const bal = parseFloat(userRow[0]?.balance_usd || 0);
+        if (bal < txn.amount_usd) {
+          return res.status(400).json({ error: 'Solde utilisateur insuffisant pour ce retrait' });
+        }
+        await db.query('UPDATE users SET balance_usd = balance_usd - ? WHERE id=?', [txn.amount_usd, txn.user_id]);
+      }
     }
     if (status === 'flagged') {
       await db.query('INSERT INTO fraud_logs (id,user_id,transaction_id,risk_score,flag_reason) VALUES (?,?,?,?,?)',

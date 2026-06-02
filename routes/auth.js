@@ -50,7 +50,7 @@ router.post('/register', async (req, res) => {
     );
 
     const token = jwt.sign({ id, email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7*24*3600*1000, sameSite: 'lax' });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT, maxAge: 7*24*3600*1000, sameSite: 'lax' });
 
     res.json({
       ok: true,
@@ -79,10 +79,10 @@ router.post('/login', async (req, res) => {
     await db.query('UPDATE users SET last_login=NOW() WHERE id=?', [user.id]);
 
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7*24*3600*1000, sameSite: 'lax' });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT, maxAge: 7*24*3600*1000, sameSite: 'lax' });
 
     const { password_hash, pin_hash, card_cvv_hash, ...safeUser } = user;
-    res.json({ ok: true, user: safeUser });
+    res.json({ ok: true, user: safeUser, token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -129,9 +129,9 @@ router.post('/admin/login', async (req, res) => {
       process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
-    res.cookie('admin_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 8*3600*1000, sameSite: 'lax' });
+    res.cookie('admin_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT, maxAge: 8*3600*1000, sameSite: 'lax' });
 
-    res.json({ ok: true, admin: { id: admin.id, email: admin.email, name: admin.name, role: admin.role } });
+    res.json({ ok: true, token, admin: { id: admin.id, email: admin.email, name: admin.name, role: admin.role } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });

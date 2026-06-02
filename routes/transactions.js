@@ -94,41 +94,47 @@ router.post('/confirm', authUser, async (req, res) => {
   }
 });
 
-// ── POST /api/transactions/convert ─────────────────────────
+// ── POST /api/transactions/convert (withdrawal request → pending, admin approves) ──
 router.post('/convert', authUser, async (req, res) => {
-  const { amount_xaf, target_currency } = req.body;
+  const { amount_usd, target_currency, operator, phone_number } = req.body;
   const validCurrencies = ['USD','EUR','GBP','CAD'];
-  if (!amount_xaf || amount_xaf < 1000) return res.status(400).json({ error: 'Minimum 1 000 XAF' });
+  if (!amount_usd || amount_usd < 1)     return res.status(400).json({ error: 'Minimum $1 USD' });
   if (!validCurrencies.includes(target_currency)) return res.status(400).json({ error: 'Devise invalide' });
+  if (!operator || !['mtn','orange','airtel'].includes(operator)) return res.status(400).json({ error: 'Opérateur invalide' });
+  if (!phone_number)                     return res.status(400).json({ error: 'Numéro de téléphone requis' });
 
   try {
     const [userRow] = await db.query('SELECT * FROM users WHERE id=?', [req.user.id]);
     const user = userRow[0];
-    const [rateRow] = await db.query('SELECT rate FROM exchange_rates WHERE from_currency=? AND to_currency=? ORDER BY recorded_at DESC LIMIT 1', ['XAF', target_currency]);
-    const rate      = rateRow[0]?.rate || 0.001667;
-    const amount_fgn = parseFloat((amount_xaf * rate).toFixed(4));
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (parseFloat(user.balance_usd) < amount_usd)
+      return res.status(400).json({ error: 'Solde insuffisant' });
+
+    // Get rate USD → target
+    const [rateRow] = await db.query(
+      'SELECT rate FROM exchange_rates WHERE from_currency=? AND to_currency=? ORDER BY recorded_at DESC LIMIT 1',
+      ['USD', target_currency]);
+    const rate       = rateRow[0]?.rate || 1;
+    const amount_fgn = parseFloat((amount_usd * rate).toFixed(4));
     const fee        = parseFloat((amount_fgn * 0.01).toFixed(4));
     const net        = parseFloat((amount_fgn - fee).toFixed(4));
-    const xafRate    = 1 / rate;
 
-    const txnId = uuidv4();
-    const ref   = genRef();
+    const txnId     = uuidv4();
+    const ref       = genRef();
     const user_name = user.first_name + ' ' + user.last_name;
 
+    // Create as PENDING — admin will approve and debit balance
     await db.query(`INSERT INTO transactions
-      (id,ref_code,user_id,user_name,type,amount_local,currency_local,amount_usd,target_currency,exchange_rate,fee,status,country_code)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [txnId,ref,req.user.id,user_name,'conversion',amount_xaf,'XAF',net,target_currency,xafRate,fee,'completed',user.country_code]);
+      (id,ref_code,user_id,user_name,type,operator,amount_local,currency_local,
+       amount_usd,target_currency,exchange_rate,fee,status,country_code,phone_number)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [txnId, ref, req.user.id, user_name, 'withdrawal',
+       operator, net, target_currency,
+       parseFloat(amount_usd), target_currency,
+       rate, fee, 'pending',
+       user.country_code, phone_number]);
 
-    await db.query('UPDATE transactions SET completed_at=NOW() WHERE id=?', [txnId]);
-
-    // Convert net to USD equivalent for balance
-    const [usdRate] = await db.query('SELECT rate FROM exchange_rates WHERE from_currency=? AND to_currency=? ORDER BY recorded_at DESC LIMIT 1', [target_currency,'USD']);
-    const netUSD = target_currency === 'USD' ? net : parseFloat((net * (usdRate[0]?.rate || 1)).toFixed(4));
-    await db.query('UPDATE users SET balance_usd = balance_usd + ? WHERE id=?', [netUSD, req.user.id]);
-
-    const [updated] = await db.query('SELECT balance_usd FROM users WHERE id=?', [req.user.id]);
-    res.json({ ok:true, ref, amount_xaf, target_currency, amount_converted: net, fee, new_balance_usd: updated[0].balance_usd });
+    res.json({ ok: true, ref, amount_usd, target_currency, amount_converted: net, fee, status: 'pending' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
